@@ -11,6 +11,7 @@ class ECSHandler:
     ASPECT_UUID_COUNTER = 0
 
     def __init__(self):
+        # ecs management
         self._aspects = {}
         self._components = {}
         self._aspect_order = []

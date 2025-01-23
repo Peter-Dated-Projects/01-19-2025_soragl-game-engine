@@ -94,7 +94,7 @@ class SignalReceiver:
         for i in range(len(self._handler._args_template)):
             if type(args[i]) != self._handler._args_template[i]:
                 raise Exception("Invalid argument type")
-        self._signal.emit(*args)
+        self._function(*args)
 
 
 # ======================================================================== #
