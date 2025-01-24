@@ -32,12 +32,19 @@ class Entity:
 
         self._rect = pygame.Rect()
 
+    def __post_init__(self):
+        # override in subclasses
+        pass
+
     # ------------------------------------------------------------------------ #
     # component logic
     # ------------------------------------------------------------------------ #
 
     def add_component(self, component):
-        self._components[id(component)] = component
+        # add to ecs -- if component not in ecs
+        self._world._gamestate._ecs.add_component(component, self)
+
+        return component
 
     def remove_component(self, component):
         self._components.pop(id(component))

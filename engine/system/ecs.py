@@ -16,6 +16,12 @@ class ECSHandler:
         self._components = {}
         self._aspect_order = []
 
+        # gamestate parent
+        self._gamestate = None
+
+    def __post_init__(self):
+        pass
+
     @classmethod
     def generate_aspect_uuid(cls):
         cls.ASPECT_UUID_COUNTER += 1
@@ -57,9 +63,20 @@ class ECSHandler:
     # component logic
     # -------------------------------------------------------------------- #
 
-    def add_component(self, component):
-        # check if component already loaded
-        if component._uuid in self._components:
+    def add_component(self, component, entity):
+        # check if component added to entity
+        if not component._uuid in entity._components:
+            # add to entity first
+            # weird fix to remove inter function calls (because it might become recursive + infinite)
+            entity._components[id(component)] = component
+            component._entity = entity
+            # entity.add_component(component)
+
+        # check if component added to ecs
+        if (
+            component.__class__ in self._components
+            and component._uuid in self._components[component.__class__]
+        ):
             return
 
         # init
@@ -77,6 +94,9 @@ class ECSHandler:
         # remove component from the components
         if not component.__class__ in self._aspect_component_map:
             return
+
+        # remove from entity as well
+        component._entity.remove_component(component)
 
         # remove component from the cache
         del self._aspect_component_map[component.__class__][component._uuid]
@@ -144,8 +164,11 @@ class Component:
         self._uuid = 0
         self._ecs_handler = None
 
+        self._entity = None
+
     def __post_init__(self):
-        self._uuid = ECSHandler.generate_component_uuid()
+        if not self._uuid:
+            self._uuid = ECSHandler.generate_component_uuid()
 
     # -------------------------------------------------------------------- #
     # logic

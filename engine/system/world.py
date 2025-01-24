@@ -3,15 +3,19 @@ import pygame
 import engine.context as ctx
 
 from engine.ecs import c_task
-from engine.graphics.camera import Camera2D
+
+from engine.graphics import camera
+
+from engine.physics import entity
 
 # ======================================================================== #
 # World
 # ======================================================================== #
 
 
-class World2D:
+class World2D(entity.Entity):
     def __init__(self, name: str):
+        super().__init__()
         self._name = name
 
         # management information
@@ -20,11 +24,16 @@ class World2D:
 
         # rendering information
         self._render_chunk_cache = set()
-        self._camera = Camera2D(render_distance=4, viewbox=ctx.W_FRAMEBUFFER.get_rect())
+        self._camera = camera.Camera2D(
+            render_distance=4, viewbox=ctx.W_FRAMEBUFFER.get_rect()
+        )
 
         # entity management - entities are just "container" objects
         self._entities = {}
         self._delta_entities = []
+
+        # gamestate parent
+        self._gamestate = None
 
     def __post_init__(self):
         # default task for the aspect handler
@@ -32,7 +41,7 @@ class World2D:
             f"_{ctx.ENGINE_NAME}_entity_chunk_change_task",
             self._entity_chunk_change_task,
         )
-        ctx.CTX_ECS_HANDLER.add_component(self._entity_chunk_change_task)
+        ctx.CTX_ECS_HANDLER.add_component(self._entity_chunk_change_task, self)
 
     # ------------------------------------------------------------------------ #
     # logic
@@ -116,6 +125,9 @@ class World2D:
 
     def add_entity(self, entity: "Entity"):
         self._entities[id(entity)] = entity
+        entity._world = self
+        entity.__post_init__()
+        return entity
 
     def remove_entity(self, entity: "Entity"):
         self._delta_entities.append(entity)

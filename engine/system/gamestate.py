@@ -15,8 +15,13 @@ class GameState:
         self._world = world.World2D(name)
         self._ecs = ecs.ECSHandler()
 
+        # set parent
+        self._world._gamestate = self
+        self._ecs._gamestate = self
+
     def __post_init__(self):
         self._world.__post_init__()
+        self._ecs.__post_init__()
 
     # ------------------------------------------------------------------------ #
     # logic
@@ -66,6 +71,7 @@ class GameStateManager:
     def set_game_state(self, name: str):
         self._current_state = self._states.get(name)
         ctx.CTX_ECS_HANDLER = self._current_state.get_ecs()
+        ctx.CTX_WORLD = self._current_state.get_world()
         self._current_state.__post_init__()
 
     def add_game_state(self, name: str, game_state: GameState):

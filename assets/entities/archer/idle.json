@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "padx": 0,
+    "pady": 0,
+    "spacingx": 0,
+    "spacingy": 0,
+    "source": "assets/entities/archer/idle.png",
+    "uniform": false,
+    "uwidth": 100,
+    "uheight": 100
+  },
+  "sprites": [
+    { "area": { "x": 0, "y": 0, "w": 100, "h": 100 }, "extra": {} },
+    { "area": { "x": 100, "y": 0, "w": 100, "h": 100 }, "extra": {} },
+    { "area": { "x": 200, "y": 0, "w": 100, "h": 100 }, "extra": {} },
+    { "area": { "x": 300, "y": 0, "w": 100, "h": 100 }, "extra": {} },
+    { "area": { "x": 400, "y": 0, "w": 100, "h": 100 }, "extra": {} },
+    { "area": { "x": 500, "y": 0, "w": 100, "h": 100 }, "extra": {} }
+  ]
+}
