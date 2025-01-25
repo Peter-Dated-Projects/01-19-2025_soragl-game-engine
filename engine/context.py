@@ -27,6 +27,11 @@ WINDOW_BIT_DEPTH = 32
 WINDOW_FLAGS = pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE
 WINDOW_ICON = "assets/icon.png"
 
+FRAMEBUFFER_WIDTH = 1280
+FRAMEBUFFER_HEIGHT = 720
+FRAMEBUFFER_BIT_DEPTH = 32
+FRAMEBUFFER_FLAGS = pygame.SRCALPHA
+
 BACKGROUND_COLOR = (255, 0, 0)
 
 # pygame objects
@@ -67,7 +72,11 @@ def init():
         (WINDOW_WIDTH, WINDOW_HEIGHT), WINDOW_FLAGS, WINDOW_BIT_DEPTH
     )
     W_CLOCK = pygame.time.Clock()
-    W_FRAMEBUFFER = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT)).convert_alpha()
+    W_FRAMEBUFFER = pygame.Surface(
+        (FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT),
+        FRAMEBUFFER_FLAGS,
+        FRAMEBUFFER_BIT_DEPTH,
+    ).convert_alpha()
     # set pygame window specs
     pygame.display.set_caption(WINDOW_TITLE)
     if WINDOW_ICON:
@@ -95,6 +104,10 @@ def run():
     RUNNING = True
 
     # begin the game loop
+    START_TIME = time.time()
+    END_TIME = START_TIME
+    RUN_TIME = 0
+
     while RUNNING:
         # calculate delta time
         START_TIME = time.time()
@@ -111,18 +124,17 @@ def run():
                 WINDOW_WIDTH = event.w
                 WINDOW_HEIGHT = event.h
 
-        # print(DELTA_TIME)
-
         # reset background
-        W_SURFACE.fill(BACKGROUND_COLOR)
+        W_FRAMEBUFFER.fill(BACKGROUND_COLOR)
 
         # update game state
         CTX_GAMESTATE_MANAGER.update()
 
         # update aspects
-        CTX_ECS_HANDLER.update()
         CTX_SIGNAL_HANDLER.handle()
-
+        W_SURFACE.blit(
+            pygame.transform.scale(W_FRAMEBUFFER, W_SURFACE.get_size()), (0, 0)
+        )
         # update window
         pygame.display.flip()
         W_CLOCK.tick(WINDOW_FPS)
@@ -132,3 +144,16 @@ def stop():
     # stop game
     global RUNNING
     RUNNING = False
+
+
+# ======================================================================== #
+# constants
+# ======================================================================== #
+
+
+class Constants:
+
+    UP = pygame.Vector2(0, 1)
+    DOWN = pygame.Vector2(0, -1)
+    LEFT = pygame.Vector2(-1, 0)
+    RIGHT = pygame.Vector2(1, 0)

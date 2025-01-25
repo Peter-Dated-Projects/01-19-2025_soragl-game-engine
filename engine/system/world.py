@@ -20,6 +20,7 @@ class World2D(entity.Entity):
 
         # management information
         self._layers = {}
+        self._layers_order = []
         self._delta_layers = []
 
         # rendering information
@@ -37,7 +38,7 @@ class World2D(entity.Entity):
 
     def __post_init__(self):
         # default task for the aspect handler
-        self._entity_chunk_change_task = c_task.Task(
+        self._entity_chunk_change_task = c_task.TaskComponent(
             f"_{ctx.ENGINE_NAME}_entity_chunk_change_task",
             self._entity_chunk_change_task,
         )
@@ -53,8 +54,8 @@ class World2D(entity.Entity):
         self._render_chunk_cache = set(self._camera.generate_visible_chunks())
 
         # update all layers
-        for layer in self._layers.values():
-            layer.update()
+        for layer_index in self._layers_order:
+            self._layers[layer_index].update()
 
         # ------------------------------------------------ #
         # finish up by updating layers
@@ -69,20 +70,27 @@ class World2D(entity.Entity):
 
     def _entity_chunk_change_task(self):
         for entity in self._entities.values():
+
             # calculate new chunk
             entity._chunk_pos = (
-                entity._position.x // ctx.DEFAULT_CHUNK_PIXEL_WIDTH,
-                entity._position.y // ctx.DEFAULT_CHUNK_PIXEL_HEIGHT,
+                int(entity._position.x // ctx.DEFAULT_CHUNK_PIXEL_WIDTH),
+                int(entity._position.y // ctx.DEFAULT_CHUNK_PIXEL_HEIGHT),
             )
 
             # check if entity moved chunks
-            if entity._chunk_pos != entity._prev_chunk_pos:
+            if (
+                entity._chunk_pos != entity._prev_chunk_pos
+                or entity._zlayer != entity._prev_zlayer
+            ):
                 # remove entity from old chunk
-                self.get_chunk(entity._prev_chunk_pos).remove_entity(entity)
+                self.get_chunk(
+                    entity._prev_chunk_pos, entity._prev_zlayer
+                ).remove_entity(entity)
                 # add entity to new chunk
-                self.get_chunk(entity._chunk_pos).add_entity(entity)
+                self.get_chunk(entity._chunk_pos, entity._zlayer).add_entity(entity)
                 # update previous chunk position
                 entity._prev_chunk_pos = entity._chunk_pos
+                entity._prev_zlayer = entity._zlayer
 
     # ------------------------------------------------------------------------ #
     # layer logic
@@ -90,43 +98,44 @@ class World2D(entity.Entity):
 
     def add_layer(self, layer: "Layer"):
         self._layers[layer._zlevel] = layer
+        self._layers_order.append(layer._zlevel)
+        # sort layers
+        self._layers_order.sort()
 
-    def remove_layer(self, layer: "Layer"):
-        self._delta_layers.append(layer)
+    def remove_layer(self, zlevel: int):
+        self._layers.pop(zlevel)
+        self._layers_order.remove(zlevel)
 
     def get_layer(self, zlevel: int):
-        return self._layers.get(zlevel)
+        if zlevel not in self._layers:
+            self.add_layer(Layer(zlevel))
+        return self._layers[zlevel]
 
     # ------------------------------------------------------------------------ #
     # chunk logic
     # ------------------------------------------------------------------------ #
 
     def add_chunk(self, chunk: "Chunk", zlayer: int):
-        if not zlayer in self._layers:
-            self._layers[zlayer] = Layer(zlayer)
-
-        self._layers[zlayer].add_chunk(chunk)
+        self.get_layer(zlayer).add_chunk(chunk)
 
     def remove_chunk(self, chunk: "Chunk", zlayer: int):
-        if not zlayer in self._layers:
-            return
-
-        self._layers[zlayer].remove_chunk(chunk)
+        self.get_layer(zlayer).remove_chunk(chunk)
 
     def get_chunk(self, chunk_position: tuple, zlayer: int):
-        if not zlayer in self._layers:
-            return None
-
-        return self._layers[zlayer].get_chunk(chunk_position)
+        return self.get_layer(zlayer).get_chunk(chunk_position)
 
     # ------------------------------------------------------------------------ #
     # entity logic
     # ------------------------------------------------------------------------ #
 
     def add_entity(self, entity: "Entity"):
-        self._entities[id(entity)] = entity
+        self._entities[hash(entity)] = entity
         entity._world = self
+        entity._layer = self.get_layer(entity._zlayer)
         entity.__post_init__()
+
+        # create chunk
+        self.get_chunk(entity._chunk_pos, entity._zlayer).add_entity(entity)
         return entity
 
     def remove_entity(self, entity: "Entity"):
@@ -186,7 +195,7 @@ class Layer:
     # ------------------------------------------------------------------------ #
 
     def add_chunk(self, chunk: "Chunk"):
-        self._chunks[id(chunk)] = chunk
+        self._chunks[chunk._chunk_id] = chunk
         chunk._layer = self
         chunk.__post_init__()
 
@@ -194,7 +203,9 @@ class Layer:
         self._delta_chunks.append(chunk)
 
     def get_chunk(self, chunk_position: tuple):
-        return self._chunks.get(Chunk.get_id(chunk_position))
+        if not Chunk.get_id(chunk_position) in self._chunks:
+            self.add_chunk(Chunk(chunk_position))
+        return self._chunks[Chunk.get_id(chunk_position)]
 
 
 # ======================================================================== #
@@ -239,6 +250,8 @@ class Chunk:
 
     def update(self):
         # update all entities inside of this chunk
+        for entity in self._entities.values():
+            entity.handle_components()
 
         # finish up by updating entities
         for entity in self._delta_entities:
@@ -250,14 +263,7 @@ class Chunk:
     # ------------------------------------------------------------------------ #
 
     def add_entity(self, entity: "Entity"):
-        self._entities[id(entity)] = entity
+        self._entities[entity._entity_id] = entity
 
     def remove_entity(self, entity: "Entity"):
         self._delta_entities.append(entity)
-
-    # ------------------------------------------------------------------------ #
-    # special logic
-    # ------------------------------------------------------------------------ #
-
-    def __id__(self):
-        return self._chunk_id

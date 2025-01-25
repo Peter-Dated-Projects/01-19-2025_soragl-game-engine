@@ -17,7 +17,7 @@ They run once every single frame.
 # ------------------------------------------------------------------------ #
 
 
-class Task(ecs.Component):
+class TaskComponent(ecs.Component):
     def __init__(self, name: str, func: Callable, *args):
         super().__init__(self.__class__.__name__)
         self.name = name
@@ -25,19 +25,9 @@ class Task(ecs.Component):
         self._func = func
         self._args = args
 
-    # -------------------------------------------------------------------- #
+    # ------------------------------------------------------------------------ #
     # task logic
-    # -------------------------------------------------------------------- #
+    # ------------------------------------------------------------------------ #
 
     def update(self):
         self._func(*self._args)
-
-
-# ======================================================================== #
-# task handler
-# ======================================================================== #
-
-
-class TaskAspect(ecs.Aspect):
-    def __init__(self):
-        super().__init__(self.__class__.__name__, [Task])

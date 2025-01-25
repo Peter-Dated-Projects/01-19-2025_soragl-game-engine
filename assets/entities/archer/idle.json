@@ -5,7 +5,7 @@
     "spacingx": 0,
     "spacingy": 0,
     "source": "assets/entities/archer/idle.png",
-    "uniform": false,
+    "uniform": true,
     "uwidth": 100,
     "uheight": 100
   },

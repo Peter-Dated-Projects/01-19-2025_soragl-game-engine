@@ -64,9 +64,20 @@ class SpriteSheet:
         return result
 
     @classmethod
-    def from_array(cls, sprites: list):
+    def from_image_array(cls, sprites: list):
         # just create - no config, no meta, not uniform
-        pass
+
+        # check if sprites is correct type
+        for i in range(len(sprites)):
+            if not isinstance(sprites[i], c_sprite.SpriteComponent):
+                raise ValueError(f"Sprite at index {i} is not a valid sprite object")
+
+        # create spritesheet purely from given data
+        result = cls(cls.create_meta(source="", uniform=False))
+        # no need to create or load anything new
+        for sprite in sprites:
+            result._sprites.append(sprite)
+        return result
 
     @classmethod
     def from_image(cls, image_path: str, meta: dict, force_image: bool = False):
@@ -115,7 +126,7 @@ class SpriteSheet:
                 # get area
                 rect = pygame.Rect(left, top, _uwidth, _uheight)
                 subimg = self._image.subsurface(rect)
-                sprite = c_sprite.Sprite(
+                sprite = c_sprite.SpriteComponent(
                     subimg, f"{self._meta['source']}||{self._sprites.__len__()}"
                 )
                 self._sprites.append(sprite)
@@ -147,12 +158,50 @@ class SpriteSheet:
 
         # end
 
-    def _load_nonuniform(self, data: list):
-        print("need to implement non uniform loading")
-        print(data)
+    def _load_nonuniform(self, data: list, cancel_json: bool = False):
 
         self._image = ctx.CTX_RESOURCE_MANAGER.load(self._meta["source"])
-        pass
+
+        for sprite in data:
+            rect = pygame.Rect(
+                sprite["area"]["x"],
+                sprite["area"]["y"],
+                sprite["area"]["w"],
+                sprite["area"]["h"],
+            )
+            subimg = self._image.subsurface(rect)
+            sprite = c_sprite.SpriteComponent(
+                image=subimg,
+                rm_uuid=f"{self._meta['source']}||{self._sprites.__len__()}",
+            )
+            sprite._spritesheet = self
+            self._sprites.append(sprite)
+
+        # create json if not existent
+        if (
+            not os.path.exists(self._meta["source"].split(".")[0] + ".json")
+            and not cancel_json
+        ):
+            # create the json
+            json_data = {
+                "meta": self._meta,
+                "sprites": [
+                    {
+                        "area": {
+                            "x": sprite.get_image().get_offset()[0],
+                            "y": sprite.get_image().get_offset()[1],
+                            "w": sprite.get_image().get_width(),
+                            "h": sprite.get_image().get_height(),
+                        },
+                        "extra": {},
+                    }
+                ],
+            }
+
+            with open(self._meta["source"].split(".")[0] + ".json", "w") as f:
+                json.dump(json_data, f)
+
+        # end
 
     # ------------------------------------------------------------------------ #
     # special methods

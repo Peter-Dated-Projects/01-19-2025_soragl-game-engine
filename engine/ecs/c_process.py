@@ -27,7 +27,7 @@ TYPE_MULTIPROCESSING = "multiprocessing"
 # ======================================================================== #
 
 
-class Process(ecs.Component):
+class ProcessComponent(ecs.Component):
     def __init__(self, name: str, func: Callable, *args, run_type: str = TYPE_THREAD):
         super().__init__(self.__class__.__name__)
         self.name = name
@@ -49,7 +49,7 @@ class Process(ecs.Component):
 # subclasses
 
 
-class ThreadProcess(Process):
+class ThreadProcessComponent(ProcessComponent):
     def __init__(self, name: str, func: Callable, *args):
         super().__init__(name, func, *args, run_type=TYPE_THREAD)
 
@@ -57,7 +57,7 @@ class ThreadProcess(Process):
         pass
 
 
-class CoroutineProcess(Process):
+class CoroutineProcessComponent(ProcessComponent):
     def __init__(self, name: str, func: Callable, *args):
         super().__init__(name, func, *args, run_type=TYPE_COROUTINE)
 
@@ -65,7 +65,7 @@ class CoroutineProcess(Process):
         pass
 
 
-class MultiProcessingProcess(Process):
+class MultiProcessingProcessComponent(ProcessComponent):
     def __init__(self, name: str, func: Callable, *args):
         super().__init__(name, func, *args, run_type=TYPE_MULTIPROCESSING)
 
@@ -76,22 +76,3 @@ class MultiProcessingProcess(Process):
 # TODO - add threading
 # TODO - add coroutines
 # TODO - add multiprocessing
-
-
-# ======================================================================== #
-# process handler
-# ======================================================================== #
-
-
-class ProcessAspect(ecs.Aspect):
-    def __init__(self):
-        super().__init__(self.__class__.__name__, [Process])
-
-    # -------------------------------------------------------------------- #
-    # process logic
-    # -------------------------------------------------------------------- #
-
-    def handle(self, process):
-        # TODO - implement later
-        print("Not implemented")
-        pass

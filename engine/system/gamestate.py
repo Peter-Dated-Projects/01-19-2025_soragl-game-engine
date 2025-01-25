@@ -57,7 +57,6 @@ class GameStateManager:
     def update(self):
         if self._current_state is not None:
             self._current_state.get_world().update()
-            self._current_state.get_ecs().update()
         else:
             print("No current state")
 

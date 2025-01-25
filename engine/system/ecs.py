@@ -8,13 +8,10 @@ from abc import ABC, abstractmethod
 
 class ECSHandler:
     COMPONENT_UUID_COUNTER = 0
-    ASPECT_UUID_COUNTER = 0
 
     def __init__(self):
         # ecs management
-        self._aspects = {}
         self._components = {}
-        self._aspect_order = []
 
         # gamestate parent
         self._gamestate = None
@@ -33,57 +30,17 @@ class ECSHandler:
         return cls.COMPONENT_UUID_COUNTER
 
     # -------------------------------------------------------------------- #
-    # aspect logic
-    # -------------------------------------------------------------------- #
-
-    def add_aspect(self, aspect):
-        aspect.__post_init__()
-        aspect._ecs_handler = self
-
-        # register aspect
-        self._aspects[aspect._uuid] = aspect
-
-        # add to priority
-        self._aspect_order.append(aspect._uuid)
-        self._aspect_order.sort(key=lambda x: -self._aspects[x].priority)
-
-        # create sections for all target components
-        for component_class in aspect.target_components_classes:
-            if not component_class in self._components:
-                self._components[component_class] = {}
-
-    def remove_aspect(self, aspect):
-        # remove aspect from the list
-        del self._aspects[aspect._uuid]
-
-        # remove from the aspect order
-        self._aspect_order.remove(aspect._uuid)
-
-    # -------------------------------------------------------------------- #
     # component logic
     # -------------------------------------------------------------------- #
 
     def add_component(self, component, entity):
         # check if component added to entity
-        if not component._uuid in entity._components:
-            # add to entity first
-            # weird fix to remove inter function calls (because it might become recursive + infinite)
-            entity._components[id(component)] = component
-            component._entity = entity
-            # entity.add_component(component)
-
-        # check if component added to ecs
-        if (
-            component.__class__ in self._components
-            and component._uuid in self._components[component.__class__]
-        ):
-            return
-
-        # init
-        component.__post_init__()
+        entity._components[component._uuid] = component
         component._ecs_handler = self
+        component._entity = entity
+        component.__post_init__()
 
-        # find the aspect that has the component
+        # create section for component if not exists
         if not component.__class__ in self._components:
             self._components[component.__class__] = {}
 
@@ -92,64 +49,24 @@ class ECSHandler:
 
     def remove_component(self, component):
         # remove component from the components
-        if not component.__class__ in self._aspect_component_map:
+        if not component.__class__ in self._components:
             return
 
         # remove from entity as well
         component._entity.remove_component(component)
 
         # remove component from the cache
-        del self._aspect_component_map[component.__class__][component._uuid]
+        del self._components[component.__class__][component._uuid]
 
     def iterate_components(self, component_class: type):
         for component in self._components[component_class].values():
             yield component
 
     def get_component(self, component_class: type, uuid):
-        return self._aspect_component_map[component_class][uuid]
+        return self._components[component_class][uuid]
 
     def get_components(self, component_class: type):
-        return self._aspect_component_map[component_class].values()
-
-    # -------------------------------------------------------------------- #
-    # logic
-    # -------------------------------------------------------------------- #
-
-    def update(self):
-        for aspect in self._aspects.values():
-            # we use this to order the aspects
-            # some have higher priority than others
-            aspect.handle_components()
-
-
-# ======================================================================== #
-# aspect
-# ======================================================================== #
-
-
-class Aspect:
-    def __init__(
-        self, name: str, target_components_classes: list[type], priority: int = 0
-    ):
-        self.name = name
-        self.priority = priority
-
-        self._uuid = 0
-        self.target_components_classes = target_components_classes
-        self._ecs_handler = None
-
-    def __post_init__(self):
-        self._uuid = ECSHandler.generate_aspect_uuid()
-
-    # -------------------------------------------------------------------- #
-    # logic
-    # -------------------------------------------------------------------- #
-
-    def handle_components(self):
-        """This function contains all logic -- and iterates through all components"""
-        for component_class in self.target_components_classes:
-            for component in self._ecs_handler.iterate_components(component_class):
-                component.update()
+        return self._components[component_class].values()
 
 
 # ======================================================================== #
