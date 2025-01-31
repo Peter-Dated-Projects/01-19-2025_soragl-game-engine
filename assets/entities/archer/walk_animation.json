@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "resources": [{ "file": "walk.png", "type": "image" }]
+  },
+  "frames": [
+    {
+      "source": "walk.png",
+      "area": { "x": 0, "y": 0, "w": 100, "h": 100 },
+      "duration": 0.1,
+      "frame_number": 0
+    },
+    {
+      "source": "walk.png",
+      "area": { "x": 100, "y": 0, "w": 100, "h": 100 },
+      "duration": 0.1,
+      "frame_number": 1
+    },
+    {
+      "source": "walk.png",
+      "area": { "x": 200, "y": 0, "w": 100, "h": 100 },
+      "duration": 0.1,
+      "frame_number": 2
+    },
+    {
+      "source": "walk.png",
+      "area": { "x": 300, "y": 0, "w": 100, "h": 100 },
+      "duration": 0.1,
+      "frame_number": 3
+    },
+    {
+      "source": "walk.png",
+      "area": { "x": 400, "y": 0, "w": 100, "h": 100 },
+      "duration": 0.1,
+      "frame_number": 4
+    },
+    {
+      "source": "walk.png",
+      "area": { "x": 500, "y": 0, "w": 100, "h": 100 },
+      "duration": 0.1,
+      "frame_number": 5
+    },
+    {
+      "source": "walk.png",
+      "area": { "x": 600, "y": 0, "w": 100, "h": 100 },
+      "duration": 0.1,
+      "frame_number": 6
+    },
+    {
+      "source": "walk.png",
+      "area": { "x": 700, "y": 0, "w": 100, "h": 100 },
+      "duration": 0.1,
+      "frame_number": 7
+    }
+  ]
+}

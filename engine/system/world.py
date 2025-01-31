@@ -4,9 +4,12 @@ import engine.context as ctx
 
 from engine.ecs import c_task
 
+from engine.system import signal
+
 from engine.graphics import camera
 
 from engine.physics import entity
+from engine.physics import interact
 
 # ======================================================================== #
 # World
@@ -33,7 +36,8 @@ class World2D(entity.Entity):
         self._entities = {}
         self._delta_entities = []
 
-        # gamestate parent
+        # gamestate + interaction field parents
+        self._interaction_field = interact.InteractionField(self)
         self._gamestate = None
 
     def __post_init__(self):
@@ -57,15 +61,18 @@ class World2D(entity.Entity):
         for layer_index in self._layers_order:
             self._layers[layer_index].update()
 
+        # physics
+        self._interaction_field.update()
+
         # ------------------------------------------------ #
         # finish up by updating layers
         for layer in self._delta_layers:
-            self.add_layer(layer)
+            self._layers.pop(layer)
         self._delta_layers.clear()
 
         # finish up by updating entities
         for entity in self._delta_entities:
-            self.add_entity(entity)
+            self._entities.pop(entity._entity_id)
         self._delta_entities.clear()
 
     def _entity_chunk_change_task(self):
@@ -101,10 +108,10 @@ class World2D(entity.Entity):
         self._layers_order.append(layer._zlevel)
         # sort layers
         self._layers_order.sort()
+        layer._world = self
 
     def remove_layer(self, zlevel: int):
-        self._layers.pop(zlevel)
-        self._layers_order.remove(zlevel)
+        self._delta_layers.append(zlevel)
 
     def get_layer(self, zlevel: int):
         if zlevel not in self._layers:
@@ -143,6 +150,19 @@ class World2D(entity.Entity):
 
     def get_entity(self, entity_id: int):
         return self._entities.get(entity_id)
+
+    # ------------------------------------------------------------------------ #
+    # component logic
+    # ------------------------------------------------------------------------ #
+
+    def get_components(self, component_class: type):
+        return self._gamestate._ecs.get_components(component_class)
+
+    def get_components_by_type(self, component_class: type):
+        return self._gamestate._ecs.get_components_by_type(component_class)
+
+    def get_component(self, component_class: type, uuid: int):
+        return self._gamestate._ecs.get_component(component_class, uuid)
 
 
 # ======================================================================== #
@@ -237,12 +257,13 @@ class Chunk:
         self._layer = None
 
         # entity information
-        # TODO - add entities
         self._entities = {}
-        self._delta_entities = []
 
     def __post_init__(self):
-        pass
+        # register the death signal for an entity
+        self._death_signal = ctx.CTX_SIGNAL_HANDLER.register_receiver(
+            "SORA_ENTITY_DEATH", self.remove_entity
+        )
 
     # ------------------------------------------------------------------------ #
     # logic
@@ -252,11 +273,9 @@ class Chunk:
         # update all entities inside of this chunk
         for entity in self._entities.values():
             entity.handle_components()
-
-        # finish up by updating entities
-        for entity in self._delta_entities:
-            self.add_entity(entity)
-        self._delta_entities.clear()
+        if ctx.DEBUG_MODE:
+            for entity in self._entities.values():
+                entity.debug()
 
     # ------------------------------------------------------------------------ #
     # entity logic
@@ -266,4 +285,7 @@ class Chunk:
         self._entities[entity._entity_id] = entity
 
     def remove_entity(self, entity: "Entity"):
-        self._delta_entities.append(entity)
+        print(f"{ctx.RUN_TIME:.5f} | REMOVING", entity._entity_id)
+        entity.clean()
+        self._entities.pop(entity._entity_id)
+        entity._world.remove_entity(entity)

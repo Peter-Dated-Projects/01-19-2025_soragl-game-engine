@@ -32,7 +32,7 @@ class ResourceManager:
     def load(self, path: str):
         # check if file exists
         if not os.path.exists(path):
-            raise FileNotFoundError(f"Resource {path} not found")
+            raise FileNotFoundError(f"Resource `{path}` not found")
 
         result = None
         if path in self._cached:

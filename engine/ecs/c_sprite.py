@@ -14,23 +14,50 @@ class SpriteComponent(ecs.Component):
     def __init__(
         self, image: pygame.Surface = None, filepath: str = None, rm_uuid: str = None
     ):
-        super().__init__(SpriteComponent.__name__)
+        """
+        Sprite Component
+
+        image: pygame.Surface -- the actual visual
+        filepath: str -- the path to the image file
+        rm_uuid: str -- {path}||{frame number or other unique identifier}
+        """
+        super().__init__()
+
+        self._extra["offset"] = (0, 0)
+
+        # check if empty sprite provided
+        if image is None and filepath is None and rm_uuid is None:
+            # leave as empty sprite
+            self._image = pygame.Surface((0, 0))
+            self._filepath = None
+            self._rm_uuid = None
+            self._rect = self._image.get_rect()
+            self._spritesheet = None
+            self._flipped = False
+
+            return
+
         self._image = (
             image if image is not None else ctx.CTX_RESOURCE_MANAGER.load(filepath)
         )
         self._filepath = filepath
         self._rm_uuid = rm_uuid if rm_uuid is not None else filepath
         self._rect = self._image.get_rect()
+        self._flipped = False
 
         # optional spritesheet
         self._spritesheet = None
+
+    def __post_init__(self):
+        # try to center sprite
+        self._rect.center = self._entity._position
 
     # ------------------------------------------------------------------------ #
     # logic
     # ------------------------------------------------------------------------ #
 
     def update(self):
-        pass
+        self._rect.center = self._entity._position
 
     def get_image(self):
         return self._image
@@ -59,22 +86,33 @@ class SpriteComponent(ecs.Component):
 
 
 class SpriteRendererComponent(ecs.Component):
-    def __init__(self, target: int = None):
-        super().__init__(SpriteRendererComponent.__name__)
+    def __init__(self, target: SpriteComponent = None):
+        super().__init__()
         self._target = target
-        self._offset = pygame.Vector2()
+        self._target_comp = None
 
     def __post_init__(self):
         if self._target is not None:
             self._target_comp = self._entity.get_component_by_id(self._target._uuid)
         else:
-            self._target_comp = self._entity.get_component(SpriteComponent)
+            self._target_comp = self._entity.get_components(SpriteComponent)
+            if len(self._target_comp) == 0:
+                print("No SpriteComponent found in entity. Cannot render sprite.")
+                self._target_comp = None
+            else:
+                self._target_comp = self._target_comp[0]
 
     # ------------------------------------------------------------------------ #
     # component logic
     # ------------------------------------------------------------------------ #
 
     def update(self):
-        ctx.W_SURFACE.blit(
-            self._target_comp.get_image(), self._entity._position + self._offset
+        ctx.W_FRAMEBUFFER.blit(
+            pygame.transform.flip(
+                self._target_comp._image, self._target_comp._flipped, False
+            ),
+            self._target_comp._rect.topleft,
         )
+
+    def debug(self):
+        pygame.draw.rect(ctx.W_FRAMEBUFFER, (200, 0, 0), self._target_comp._rect, 1)

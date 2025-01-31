@@ -39,6 +39,7 @@ class SpriteSheet:
     """
 
     SPRITESHEET_UUID_COUNTER = 0
+    SPRITESHEET_CACHE = {}
 
     def __init__(self, meta: dict):
         self._meta = meta
@@ -53,6 +54,9 @@ class SpriteSheet:
     @classmethod
     def from_json(cls, json_path: str):
         # load json + parse
+        # only add json to cache
+        if json_path in cls.SPRITESHEET_CACHE:
+            return cls.SPRITESHEET_CACHE[json_path]
 
         # open json file and retrieve meta data + sprite loading data
         with open(json_path, "r") as f:
@@ -61,6 +65,7 @@ class SpriteSheet:
         # create spritesheet
         result = cls(data["meta"])
         result._load_nonuniform(data["sprites"])
+        cls.SPRITESHEET_CACHE[json_path] = result
         return result
 
     @classmethod
@@ -127,7 +132,11 @@ class SpriteSheet:
                 rect = pygame.Rect(left, top, _uwidth, _uheight)
                 subimg = self._image.subsurface(rect)
                 sprite = c_sprite.SpriteComponent(
-                    subimg, f"{self._meta['source']}||{self._sprites.__len__()}"
+                    image=subimg,
+                    filepath=self._meta["source"],
+                    rm_uuid=self.generate_frame_uuid(
+                        self._meta["source"], len(self._sprites)
+                    ),
                 )
                 self._sprites.append(sprite)
 
@@ -202,6 +211,10 @@ class SpriteSheet:
                 json.dump(json_data, f)
 
         # end
+
+    @staticmethod
+    def generate_frame_uuid(path: str, frame_number: int):
+        return f"{path}||{frame_number}"
 
     # ------------------------------------------------------------------------ #
     # special methods

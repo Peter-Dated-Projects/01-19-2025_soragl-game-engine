@@ -19,7 +19,7 @@ They run once every single frame.
 
 class TaskComponent(ecs.Component):
     def __init__(self, name: str, func: Callable, *args):
-        super().__init__(self.__class__.__name__)
+        super().__init__()
         self.name = name
 
         self._func = func

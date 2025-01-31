@@ -1,5 +1,7 @@
 import pygame
 
+from engine import context as ctx
+
 # ======================================================================== #
 # Entity
 # ======================================================================== #
@@ -23,7 +25,7 @@ class Entity:
         self._world = None
 
         # component handler
-        self._components: dict[str, Component] = {}
+        self._components: dict[int, ecs.Component] = {}
 
         # basic information
         self._prev_position = pygame.Vector2()
@@ -32,8 +34,9 @@ class Entity:
         self._position = pygame.Vector2()
         self._chunk_pos = (0, 0)
         self._zlayer = 0
+        self._alive = True
 
-        self._rect = pygame.Rect()
+        self._rect = pygame.FRect()
 
     def __post_init__(self):
         # override in subclasses
@@ -45,12 +48,16 @@ class Entity:
 
     def add_component(self, component):
         # add to ecs -- if component not in ecs
-        self._world._gamestate._ecs.add_component(component, self)
+        result = self._world._gamestate._ecs.add_component(component, self)
+        return result
 
-        return component
-
-    def remove_component(self, component):
-        self._components.pop(id(component))
+    def remove_component(self, component, _reload=True):
+        self._components.pop(component._uuid)
+        if not _reload:
+            return
+        # run post init again to update all components
+        for i in self._components.values():
+            i.__post_init__()
 
     def get_components(self, component_class: type):
         return [
@@ -70,12 +77,26 @@ class Entity:
                 yield component
 
     def handle_components(self):
+        print(f"{ctx.RUN_TIME:.5f} | HANDLING COMPONENTS", self._entity_id)
         for component in self._components.values():
             component.update()
+
+    def debug(self):
+        for component in self._components.values():
+            component.debug()
+
+    def clean(self):
+        # kill all components
+        for component in list(self._components.values()):
+            self._world._gamestate._ecs.remove_component(component)
+            print(f"{ctx.RUN_TIME:.5f} | REMAINING COMPS:", self._components)
 
     # ------------------------------------------------------------------------ #
     # special properties
     # ------------------------------------------------------------------------ #
+
+    def __eq__(self, other):
+        return self._entity_id == other._entity_id
 
     def __hash__(self):
         return self._entity_id
@@ -88,3 +109,16 @@ class Entity:
     def zlayer(self, value):
         self._prev_zlayer = self._zlayer
         self._zlayer = value
+
+    @property
+    def alive(self):
+        return self._alive
+
+    @alive.setter
+    def alive(self, value):
+        if not self._alive:
+            print("already dead")
+            return
+        self._alive = value
+        if not value:
+            ctx.CTX_SIGNAL_HANDLER.emit_signal("SORA_ENTITY_DEATH", self)

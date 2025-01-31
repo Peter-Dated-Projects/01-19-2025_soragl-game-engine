@@ -1,4 +1,5 @@
 import uuid
+import engine.context as ctx
 
 # ======================================================================== #
 # The Signal handler system
@@ -70,7 +71,8 @@ class Signal:
         self._handler.emit_signal(self._signal_name, *args)
 
     def handle_packet(self, *args):
-        for receiver in self._receivers.values():
+        for key, receiver in self._receivers.items():
+            print(f"{ctx.RUN_TIME:.5f} | EMITTING", key, receiver._function)
             receiver.emit_signal(*args)
 
 

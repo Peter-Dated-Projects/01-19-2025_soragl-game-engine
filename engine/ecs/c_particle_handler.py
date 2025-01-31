@@ -14,7 +14,7 @@ from engine.system import ecs
 class ParticleHandlerComponent(ecs.Component):
 
     def __init__(self, updates_per_second: float = 30):
-        super().__init__(self.__class__.__name__)
+        super().__init__()
 
         self._particles = {}
         self._dead_particles = []

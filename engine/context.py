@@ -6,7 +6,10 @@ from engine.system import signal
 from engine.system import ecs
 from engine.system import gamestate
 
+from engine.physics import entity
+
 from engine.io import resourcemanager
+from engine.io import inputhandler
 
 # ======================================================================== #
 # context
@@ -18,6 +21,7 @@ ENGINE_NAME = "SORAGL"
 # singleton for main engine data
 
 RUNNING = False
+DEBUG_MODE = False
 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
@@ -49,6 +53,7 @@ RUN_TIME = 0
 # objects
 CTX_WINDOW = None
 CTX_ECS_HANDLER = None
+CTX_INPUT_HANDLER = None
 CTX_SIGNAL_HANDLER = None
 CTX_RESOURCE_MANAGER = None
 CTX_GAMESTATE_MANAGER = None
@@ -87,7 +92,9 @@ def init():
     global CTX_RESOURCE_MANAGER
     global CTX_GAMESTATE_MANAGER
     global CTX_ECS_HANDLER
+    global CTX_INPUT_HANDLER
 
+    CTX_INPUT_HANDLER = inputhandler.InputHandler()
     CTX_SIGNAL_HANDLER = signal.SignalHandler()
     CTX_RESOURCE_MANAGER = resourcemanager.ResourceManager()
 
@@ -96,6 +103,12 @@ def init():
     CTX_ECS_HANDLER = CTX_GAMESTATE_MANAGER.get_current_ecs()
 
     print("Initializing pygame window Context...")
+
+    # ------------------------------------------------------------------------ #
+    # register signals
+    # ------------------------------------------------------------------------ #
+
+    CTX_SIGNAL_HANDLER.register_signal("SORA_ENTITY_DEATH", [entity.Entity])
 
 
 def run():
@@ -109,6 +122,9 @@ def run():
     RUN_TIME = 0
 
     while RUNNING:
+        print(
+            f"{RUN_TIME:.5f} | ===================== START NEW LOOP ================================"
+        )
         # calculate delta time
         START_TIME = time.time()
         DELTA_TIME = START_TIME - END_TIME
@@ -128,6 +144,7 @@ def run():
         W_FRAMEBUFFER.fill(BACKGROUND_COLOR)
 
         # update game state
+        CTX_INPUT_HANDLER.update()
         CTX_GAMESTATE_MANAGER.update()
 
         # update aspects
@@ -153,7 +170,9 @@ def stop():
 
 class Constants:
 
-    UP = pygame.Vector2(0, 1)
-    DOWN = pygame.Vector2(0, -1)
+    UP = pygame.Vector2(0, -1)
+    DOWN = pygame.Vector2(0, 1)
     LEFT = pygame.Vector2(-1, 0)
     RIGHT = pygame.Vector2(1, 0)
+
+    GRAVITY_VECTOR = DOWN * 9.8

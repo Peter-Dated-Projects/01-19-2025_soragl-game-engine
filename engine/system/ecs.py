@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import engine.context as ctx
 
 # ======================================================================== #
 # aspect component handler
@@ -34,26 +35,32 @@ class ECSHandler:
     # -------------------------------------------------------------------- #
 
     def add_component(self, component, entity):
-        # check if component added to entity
-        entity._components[component._uuid] = component
+        # add to entity
+        component._uuid = self.generate_component_uuid()
         component._ecs_handler = self
         component._entity = entity
+        entity._components[component._uuid] = component
         component.__post_init__()
 
         # create section for component if not exists
         if not component.__class__ in self._components:
             self._components[component.__class__] = {}
-
-        # add component to the cache
         self._components[component.__class__][component._uuid] = component
+
+        return component
 
     def remove_component(self, component):
         # remove component from the components
         if not component.__class__ in self._components:
             return
 
+        print(
+            f"{ctx.RUN_TIME:.5f} | REMOVING COMPONENT",
+            component._uuid,
+            component.__class__,
+        )
         # remove from entity as well
-        component._entity.remove_component(component)
+        component._entity.remove_component(component, _reload=False)
 
         # remove component from the cache
         del self._components[component.__class__][component._uuid]
@@ -75,13 +82,14 @@ class ECSHandler:
 
 
 class Component:
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self):
+        self.name = self.__class__.__name__
 
         self._uuid = 0
         self._ecs_handler = None
 
         self._entity = None
+        self._extra = {}
 
     def __post_init__(self):
         if not self._uuid:
@@ -93,4 +101,8 @@ class Component:
 
     @abstractmethod
     def update(self):
+        pass
+
+    @abstractmethod
+    def debug(self):
         pass
