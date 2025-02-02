@@ -36,7 +36,9 @@ from engine.io import inputhandler
 
 from engine.physics import entity
 from engine.physics import interact
+
 from engine.physics.ecs import c_AABB
+from engine.physics.ecs import c_SoraBox2D
 
 ctx.WINDOW_WIDTH = 1280
 ctx.WINDOW_HEIGHT = 720
@@ -169,72 +171,129 @@ def draw_animation():
 
 e3.add_component(c_task.TaskComponent("draw_animation", draw_animation))
 
+
 # test - physics
-eleft = ctx.CTX_WORLD.add_entity(entity.Entity())
-eright = ctx.CTX_WORLD.add_entity(entity.Entity())
+if True:
+    eleft = ctx.CTX_WORLD.add_entity(entity.Entity())
+    eright = ctx.CTX_WORLD.add_entity(entity.Entity())
 
-eleft.add_component(c_AABB.AABBColliderComponent(20, 20))
-eleft.add_component(c_sprite.SpriteComponent())
-eleft.add_component(
-    animation.AnimatedSpriteComponent(
-        animation.Animation.from_json("assets/entities/archer/idle_animation.json")
+    eleft.add_component(
+        c_SoraBox2D.SoraBox2DColliderComponent(20, 20, collision_conserve_coef=1.0)
     )
-)
-eleft.add_component(c_sprite.SpriteRendererComponent())
-eleft.add_component(
-    interact.InteractionFieldComponent(collision_mask=0b00000001)
-)._velocity.x = 40
-
-eright.add_component(c_AABB.AABBColliderComponent(20, 20))
-eright.add_component(c_sprite.SpriteComponent())
-eright.add_component(
-    animation.AnimatedSpriteComponent(
-        animation.Animation.from_json("assets/entities/archer/walk_animation.json")
+    eleft.add_component(c_sprite.SpriteComponent())
+    eleft.add_component(
+        animation.AnimatedSpriteComponent(
+            animation.Animation.from_json("assets/entities/archer/idle_animation.json")
+        )
     )
-)
-eright.add_component(c_sprite.SpriteRendererComponent())
-eright.add_component(
-    interact.InteractionFieldComponent(collision_mask=0b00000001)
-)._velocity.xy = (-40, 5)
+    eleft.add_component(c_sprite.SpriteRendererComponent())
+    eleft.add_component(
+        interact.InteractionFieldComponent(collision_mask=0b00000001)
+    )._velocity.x = 40
 
-
-edown = ctx.CTX_WORLD.add_entity(entity.Entity())
-edown.add_component(c_AABB.AABBColliderComponent(20, 20))
-edown.add_component(c_sprite.SpriteComponent())
-edown.add_component(
-    animation.AnimatedSpriteComponent(
-        animation.Animation.from_json("assets/entities/archer/walk_animation.json")
+    eright.add_component(
+        c_SoraBox2D.SoraBox2DColliderComponent(20, 20, collision_conserve_coef=1.2)
     )
-)
-edown.add_component(c_sprite.SpriteRendererComponent())
-edown.add_component(
-    interact.InteractionFieldComponent(collision_mask=0b00000001)
-)._velocity.y = -50
-
-
-some_random_block = ctx.CTX_WORLD.add_entity(entity.Entity())
-some_random_block.add_component(c_AABB.AABBColliderComponent(40, 40))
-some_random_block.add_component(
-    interact.InteractionFieldComponent(collision_mask=0b00000001, static=True)
-)
-some_random_block.add_component(c_sprite.SpriteComponent())
-some_random_block.add_component(
-    animation.AnimatedSpriteComponent(
-        animation.Animation.from_json("assets/entities/archer/walk_animation.json")
+    eright.add_component(c_sprite.SpriteComponent())
+    eright.add_component(
+        animation.AnimatedSpriteComponent(
+            animation.Animation.from_json("assets/entities/archer/walk_animation.json")
+        )
     )
-)
-some_random_block.add_component(c_sprite.SpriteRendererComponent())
+    eright.add_component(c_sprite.SpriteRendererComponent())
+    eright.add_component(
+        interact.InteractionFieldComponent(collision_mask=0b00000001)
+    )._velocity.xy = (-40, 5)
+
+    edown = ctx.CTX_WORLD.add_entity(entity.Entity())
+    edown.add_component(
+        c_SoraBox2D.SoraBox2DColliderComponent(20, 20, collision_conserve_coef=0.9)
+    )
+    edown.add_component(c_sprite.SpriteComponent())
+    edown.add_component(
+        animation.AnimatedSpriteComponent(
+            animation.Animation.from_json("assets/entities/archer/walk_animation.json")
+        )
+    )
+    edown.add_component(c_sprite.SpriteRendererComponent())
+    edown.add_component(
+        interact.InteractionFieldComponent(collision_mask=0b00000001)
+    )._velocity.y = -50
+
+    some_random_block = ctx.CTX_WORLD.add_entity(entity.Entity())
+    some_random_block.add_component(c_AABB.AABBColliderComponent(40, 40))
+    some_random_block.add_component(
+        interact.InteractionFieldComponent(collision_mask=0b00000001, static=True)
+    )
+    some_random_block.add_component(c_sprite.SpriteComponent())
+    some_random_block.add_component(
+        animation.AnimatedSpriteComponent(
+            animation.Animation.from_json("assets/entities/archer/walk_animation.json")
+        )
+    )
+    some_random_block.add_component(c_sprite.SpriteRendererComponent())
+
+# ------------------------------------------------------------------------ #
+# walls
+if True:
+
+    left_wall = ctx.CTX_WORLD.add_entity(entity.Entity())
+    left_wall.add_component(c_AABB.AABBColliderComponent(20, 300))
+    left_wall.add_component(
+        interact.InteractionFieldComponent(collision_mask=0b00000001, static=True)
+    )
+    left_wall.add_component(c_sprite.SpriteComponent())
+    left_wall.add_component(c_sprite.SpriteRendererComponent())
+    left_wall._position += pygame.Vector2(100, 200)
+
+    right_wall = ctx.CTX_WORLD.add_entity(entity.Entity())
+    right_wall.add_component(c_AABB.AABBColliderComponent(20, 300))
+    right_wall.add_component(
+        interact.InteractionFieldComponent(collision_mask=0b00000001, static=True)
+    )
+    right_wall.add_component(c_sprite.SpriteComponent())
+    right_wall.add_component(c_sprite.SpriteRendererComponent())
+    right_wall._position += pygame.Vector2(500, 200)
+
+    top_wall = ctx.CTX_WORLD.add_entity(entity.Entity())
+    top_wall.add_component(c_AABB.AABBColliderComponent(600, 20))
+    top_wall.add_component(
+        interact.InteractionFieldComponent(collision_mask=0b00000001, static=True)
+    )
+    top_wall.add_component(c_sprite.SpriteComponent())
+    top_wall.add_component(c_sprite.SpriteRendererComponent())
+    top_wall._position += pygame.Vector2(200, 100)
+
+    bottom_wall = ctx.CTX_WORLD.add_entity(entity.Entity())
+    bottom_wall.add_component(c_AABB.AABBColliderComponent(600, 20))
+    bottom_wall.add_component(
+        interact.InteractionFieldComponent(collision_mask=0b00000001, static=True)
+    )
+    bottom_wall.add_component(c_sprite.SpriteComponent())
+    bottom_wall.add_component(c_sprite.SpriteRendererComponent())
+    bottom_wall._position += pygame.Vector2(200, 350)
+
+# ------------------------------------------------------------------------ #
+# entities
 
 some_random_block._position += pygame.Vector2(300, 200)
-eleft._position += pygame.Vector2(200, 200)
+eleft._position += pygame.Vector2(240, 200)
 eright._position += pygame.Vector2(450, 200)
-edown._position += pygame.Vector2(250, 280)
+edown._position += pygame.Vector2(300, 300)
 
 
 # some_random_block.alive = False
 # eleft.alive = False
 # edown.alive = False
 # eright.alive = False
+# left_wall.alive = False
+# right_wall.alive = False
+# top_wall.alive = False
+# bottom_wall.alive = False
+
+e1.alive = False
+e3.alive = False
+e4.alive = False
 
 
 def kill_static():

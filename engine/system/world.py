@@ -272,6 +272,7 @@ class Chunk:
     def update(self):
         # update all entities inside of this chunk
         for entity in self._entities.values():
+            entity.update()
             entity.handle_components()
         if ctx.DEBUG_MODE:
             for entity in self._entities.values():
@@ -285,7 +286,7 @@ class Chunk:
         self._entities[entity._entity_id] = entity
 
     def remove_entity(self, entity: "Entity"):
-        print(f"{ctx.RUN_TIME:.5f} | REMOVING", entity._entity_id)
+        # print(f"{ctx.RUN_TIME:.5f} | REMOVING", entity._entity_id)
         entity.clean()
         self._entities.pop(entity._entity_id)
         entity._world.remove_entity(entity)

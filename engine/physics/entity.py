@@ -76,8 +76,14 @@ class Entity:
             if isinstance(component, component_class):
                 yield component
 
+    # ------------------------------------------------------------------------ #
+    # logic
+    # ------------------------------------------------------------------------ #
+
+    def update(self):
+        pass
+
     def handle_components(self):
-        print(f"{ctx.RUN_TIME:.5f} | HANDLING COMPONENTS", self._entity_id)
         for component in self._components.values():
             component.update()
 
@@ -89,7 +95,7 @@ class Entity:
         # kill all components
         for component in list(self._components.values()):
             self._world._gamestate._ecs.remove_component(component)
-            print(f"{ctx.RUN_TIME:.5f} | REMAINING COMPS:", self._components)
+            # print(f"{ctx.RUN_TIME:.5f} | REMAINING COMPS:", self._components)
 
     # ------------------------------------------------------------------------ #
     # special properties

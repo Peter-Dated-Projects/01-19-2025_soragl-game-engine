@@ -2,6 +2,7 @@ from typing import Callable
 
 import math
 import pygame
+import itertools
 
 import engine.context as ctx
 
@@ -67,6 +68,8 @@ class InteractionField:
     def __init__(self, world: "World"):
         self._world = world
 
+        print(__file__, "Physics only supports AABB objects for now")
+
     # ------------------------------------------------------------------------ #
     # logic
     # ------------------------------------------------------------------------ #
@@ -74,34 +77,33 @@ class InteractionField:
     def update(self):
 
         # stage 0: move
-
         # TODO -- make this less hacky lol i guess
-        for interact in self._world.get_components(InteractionFieldComponent):
+        interacts = self._world.get_components(InteractionFieldComponent)
+        for interact in interacts.values():
             interact._entity._prev_position.xy = interact._entity._position.xy
             if interact._static:
                 continue
             interact._entity._position += interact._velocity * ctx.DELTA_TIME
 
-        collisions = []
         # stage 1: detect
+        collisions = []
         # TODO - optimize this later
-        # TODO - use a quadtree or something
-        interacts = list(self._world.get_components(InteractionFieldComponent))
+        # TODO - use a quadtree or something or BVL
 
-        for i1 in range(len(interacts)):
-            for i2 in range(i1 + 1, len(interacts)):
+        for i1, i2 in itertools.combinations(interacts, 2):
 
-                # TODO -- for SAT
-                # iterate through each "line" of polygon
-                # find normal
-                # SAT along that "normal"
-                # if collision -> find penetration
-                # if no collision -> continue
-                # all axis must "collide" for a collision to occur
+            # TODO -- for SAT
+            # iterate through each "line" of polygon
+            # find normal
+            # SAT along that "normal"
+            # if collision -> find penetration
+            # if no collision -> continue
+            # all axis must "collide" for a collision to occur
 
-                manifold = self.detect_collision(interacts[i1], interacts[i2])
-                if manifold is not None:
-                    collisions.append(manifold)
+            # print(interacts[i1]._shape, interacts[i2]._shape)
+            manifold = self.detect_collision(interacts[i1], interacts[i2])
+            if manifold is not None:
+                collisions.append(manifold)
 
         # stage 2: resolve
         for manifold in collisions:
@@ -115,12 +117,18 @@ class InteractionField:
         if interact1._collision_mask & interact2._collision_mask == 0:
             return False
 
+        # for some reason is reversed min?
+        i2 = min(interact1, interact2, key=lambda x: x.__class__.__name__)
+        i1 = interact2 if i2 == interact1 else interact1
+
+        # print("detect", i1._shape, i2._shape)
         return self.get_detection_function(
             interact1._shape.__class__,
             interact2._shape.__class__,
-        )(interact1, interact2)
+        )(i1, i2)
 
     def resolve_collision(self, manifold: "CollisionManifold"):
+
         self.get_resolution_function(
             manifold._interact1._shape.__class__,
             manifold._interact2._shape.__class__,
@@ -160,7 +168,7 @@ def single_axis_test(
     max1 = dot
     for i in range(1, len(pts1)):
         dot = axis.dot(pts1[i])
-        print(f"{ctx.RUN_TIME:.5f} | OBJ 1 | DOT: {dot}, POINT: {pts1[i]}")
+        # print(f"{ctx.RUN_TIME:.5f} | OBJ 1 | DOT: {dot}, POINT: {pts1[i]}")
         min1 = min(min1, dot)
         max1 = max(max1, dot)
     # print(f"{ctx.RUN_TIME:.5f} | OBJ 1 | LEFT: {min1}, RIGHT: {max1}")
@@ -171,25 +179,21 @@ def single_axis_test(
     max2 = dot
     for i in range(1, len(pts2)):
         dot = axis.dot(pts2[i])
-        print(f"{ctx.RUN_TIME:.5f} | OBJ 2 | DOT: {dot}, POINT: {pts2[i]}")
+        # print(f"{ctx.RUN_TIME:.5f} | OBJ 2 | DOT: {dot}, POINT: {pts2[i]}")
         min2 = min(min2, dot)
         max2 = max(max2, dot)
 
     # print(f"{ctx.RUN_TIME:.5f} | OBJ 2 | LEFT: {min2}, RIGHT: {max2}")
 
     # who is more left?
-    left = (min1, max1) if min1 < min2 else (min2, max2)
-    right = (min1, max1) if max1 > max2 else (min2, max2)
+    # left = (min1, max1) if min1 < min2 else (min2, max2)
+    # right = (min1, max1) if max1 > max2 else (min2, max2)
 
     # print("axis", axis)
-    # print(left, right)
-    # print(left[0] - right[1], right[0] - left[1])
-
-    if left == right:
-        return 0
+    # print(min1 - max2, min2 - max1)
 
     # return penetration depth -- min makes more sense here
-    return min([left[1] - right[0], left[0] - right[1]], key=lambda x: abs(x))
+    return max([min1 - max2, min2 - max1], key=lambda x: abs(x))
 
 
 # ======================================================================== #
@@ -220,6 +224,11 @@ class CollisionManifold:
         )
 
         self._extra = extra
+        self._world = world
+
+    # ------------------------------------------------------------------------ #
+    def __str__(self):
+        return f"{ctx.RUN_TIME:.5f} | Resolving: {self._interact1._shape.__class__.__name__} -> {self._interact2._shape.__class__.__name__}"
 
 
 # ======================================================================== #

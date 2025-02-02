@@ -72,8 +72,8 @@ class ECSHandler:
     def get_component(self, component_class: type, uuid):
         return self._components[component_class][uuid]
 
-    def get_components(self, component_class: type):
-        return self._components[component_class].values()
+    def get_components(self, component_class: type) -> dict:
+        return self._components[component_class]
 
 
 # ======================================================================== #
