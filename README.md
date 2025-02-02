@@ -11,8 +11,16 @@ We've got anime based lore lol. That's good right? Kinda like `Wistoria` but **i
 
 You don't. Yet.
 
+Requirements:
+
+- Python 3.11.0
+- everything in requirements.txt
+
+```bash
+pip install -r requirements.txt
+```
+
 
 ## Development Log
 
 I should start a YouTube series for this if I want to get anywhere.
-
