@@ -1,10 +1,12 @@
 import pygame
 
+import Box2D
+from Box2D import b2
+
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.ecs import c_task
-
-from engine.system import signal
 
 from engine.graphics import camera
 
@@ -17,7 +19,14 @@ from engine.physics import interact
 
 
 class World2D(entity.Entity):
-    def __init__(self, name: str):
+
+    def __init__(
+        self,
+        name: str,
+        gravity: tuple = consts.DEFAULT_PHYSICS_GRAVITY.xy,
+        _physics_pos_steps: int = consts.DEFAULT_PHYSICS_POS_STEPS,
+        _physics_vel_steps: int = consts.DEFAULT_PHYSICS_VEL_STEPS,
+    ):
         super().__init__()
         self._name = name
 
@@ -25,12 +34,13 @@ class World2D(entity.Entity):
         self._layers = {}
         self._layers_order = []
         self._delta_layers = []
+        self._physics_world = b2.world(gravity=gravity, doSleep=True)
 
         # rendering information
         self._render_chunk_cache = set()
-        self._camera = camera.Camera2D(
-            render_distance=4, viewbox=ctx.W_FRAMEBUFFER.get_rect()
-        )
+        self._camera = camera.Camera2D(render_distance=4)
+        self._physics_pos_steps = _physics_pos_steps
+        self._physics_vel_steps = _physics_vel_steps
 
         # entity management - entities are just "container" objects
         self._entities = {}
@@ -43,10 +53,10 @@ class World2D(entity.Entity):
     def __post_init__(self):
         # default task for the aspect handler
         self._entity_chunk_change_task = c_task.TaskComponent(
-            f"_{ctx.ENGINE_NAME}_entity_chunk_change_task",
+            f"_{consts.ENGINE_NAME}_entity_chunk_change_task",
             self._entity_chunk_change_task,
         )
-        ctx.CTX_ECS_HANDLER.add_component(self._entity_chunk_change_task, self)
+        consts.CTX_ECS_HANDLER.add_component(self._entity_chunk_change_task, self)
 
     # ------------------------------------------------------------------------ #
     # logic
@@ -63,6 +73,10 @@ class World2D(entity.Entity):
 
         # physics
         self._interaction_field.update()
+        self._physics_world.Step(
+            consts.DELTA_TIME, self._physics_vel_steps, self._physics_pos_steps
+        )
+        self._physics_world.ClearForces()
 
         # ------------------------------------------------ #
         # finish up by updating layers
@@ -80,8 +94,8 @@ class World2D(entity.Entity):
 
             # calculate new chunk
             entity._chunk_pos = (
-                int(entity._position.x // ctx.DEFAULT_CHUNK_PIXEL_WIDTH),
-                int(entity._position.y // ctx.DEFAULT_CHUNK_PIXEL_HEIGHT),
+                int(entity._position.x // consts.DEFAULT_CHUNK_PIXEL_WIDTH),
+                int(entity._position.y // consts.DEFAULT_CHUNK_PIXEL_HEIGHT),
             )
 
             # check if entity moved chunks
@@ -184,7 +198,7 @@ class Layer:
 
         # buffer information -- toggleable
         self._framebuffer = (
-            None if not buffer else pygame.Surface(ctx.W_FRAMEBUFFER.get_size())
+            None if not buffer else pygame.Surface(consts.W_FRAMEBUFFER.get_size())
         )
         self._buffer_size = buffer_size
 
@@ -246,8 +260,8 @@ class Chunk:
     def __init__(self, chunk_position: tuple):
         self._chunk_position = chunk_position
         self._chunk_size = (
-            ctx.DEFAULT_CHUNK_PIXEL_WIDTH,
-            ctx.DEFAULT_CHUNK_PIXEL_HEIGHT,
+            consts.DEFAULT_CHUNK_PIXEL_WIDTH,
+            consts.DEFAULT_CHUNK_PIXEL_HEIGHT,
         )
 
         # chunk information
@@ -261,7 +275,7 @@ class Chunk:
 
     def __post_init__(self):
         # register the death signal for an entity
-        self._death_signal = ctx.CTX_SIGNAL_HANDLER.register_receiver(
+        self._death_signal = consts.CTX_SIGNAL_HANDLER.register_receiver(
             "SORA_ENTITY_DEATH", self.remove_entity
         )
 
@@ -274,7 +288,7 @@ class Chunk:
         for entity in self._entities.values():
             entity.update()
             entity.handle_components()
-        if ctx.DEBUG_MODE:
+        if consts.DEBUG_MODE:
             for entity in self._entities.values():
                 entity.debug()
 
@@ -286,7 +300,7 @@ class Chunk:
         self._entities[entity._entity_id] = entity
 
     def remove_entity(self, entity: "Entity"):
-        # print(f"{ctx.RUN_TIME:.5f} | REMOVING", entity._entity_id)
+        # print(f"{consts.RUN_TIME:.5f} | REMOVING", entity._entity_id)
         entity.clean()
         self._entities.pop(entity._entity_id)
         entity._world.remove_entity(entity)

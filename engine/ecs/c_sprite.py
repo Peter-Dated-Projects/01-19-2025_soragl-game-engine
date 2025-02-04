@@ -1,6 +1,8 @@
 import pygame
 
 import engine.context as ctx
+import engine.constants as consts
+
 from engine.io import resourcemanager
 from engine.system import ecs
 
@@ -38,7 +40,7 @@ class SpriteComponent(ecs.Component):
             return
 
         self._image = (
-            image if image is not None else ctx.CTX_RESOURCE_MANAGER.load(filepath)
+            image if image is not None else consts.CTX_RESOURCE_MANAGER.load(filepath)
         )
         self._filepath = filepath
         self._rm_uuid = rm_uuid if rm_uuid is not None else filepath
@@ -107,7 +109,7 @@ class SpriteRendererComponent(ecs.Component):
     # ------------------------------------------------------------------------ #
 
     def update(self):
-        ctx.W_FRAMEBUFFER.blit(
+        consts.W_FRAMEBUFFER.blit(
             pygame.transform.flip(
                 self._target_comp._image, self._target_comp._flipped, False
             ),
@@ -115,4 +117,4 @@ class SpriteRendererComponent(ecs.Component):
         )
 
     def debug(self):
-        pygame.draw.rect(ctx.W_FRAMEBUFFER, (200, 0, 0), self._target_comp._rect, 1)
+        pygame.draw.rect(consts.W_FRAMEBUFFER, (200, 0, 0), self._target_comp._rect, 1)

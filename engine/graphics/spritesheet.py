@@ -3,6 +3,7 @@ import json
 import pygame
 
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.ecs import c_sprite
 
@@ -104,7 +105,7 @@ class SpriteSheet:
 
     def _load_uniform(self):
         # load base image first
-        self._image = ctx.CTX_RESOURCE_MANAGER.load(self._meta["source"])
+        self._image = consts.CTX_RESOURCE_MANAGER.load(self._meta["source"])
         _xpad = self._meta["padx"]
         _ypad = self._meta["pady"]
         _spacingx = self._meta["spacingx"]
@@ -169,7 +170,7 @@ class SpriteSheet:
 
     def _load_nonuniform(self, data: list, cancel_json: bool = False):
 
-        self._image = ctx.CTX_RESOURCE_MANAGER.load(self._meta["source"])
+        self._image = consts.CTX_RESOURCE_MANAGER.load(self._meta["source"])
 
         for sprite in data:
             rect = pygame.Rect(

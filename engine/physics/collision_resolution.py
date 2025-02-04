@@ -1,6 +1,7 @@
 import pygame
 
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.physics import interact
 from engine.physics.ecs import c_AABB
@@ -51,7 +52,7 @@ def _resolve_aabb_sorabox2d(manifold: interact.CollisionManifold):
 
     # stage 1: basic SAT collision
     # stage 1.1: move in x-axis
-    d_rect.x += d_interact._velocity.x * ctx.DELTA_TIME
+    d_rect.x += d_interact._velocity.x * consts.DELTA_TIME
 
     # check for collision
     if s_rect.colliderect(d_rect):
@@ -64,7 +65,7 @@ def _resolve_aabb_sorabox2d(manifold: interact.CollisionManifold):
         d_interact._velocity.x *= -d_shape._collision_conserve_coef
 
     # stage 1.2: move in y-axis
-    d_rect.y += d_interact._velocity.y * ctx.DELTA_TIME
+    d_rect.y += d_interact._velocity.y * consts.DELTA_TIME
 
     # check for collision
     if s_rect.colliderect(d_rect):

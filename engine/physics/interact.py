@@ -5,6 +5,7 @@ import pygame
 import itertools
 
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.system import ecs
 
@@ -83,7 +84,7 @@ class InteractionField:
             interact._entity._prev_position.xy = interact._entity._position.xy
             if interact._static:
                 continue
-            interact._entity._position += interact._velocity * ctx.DELTA_TIME
+            interact._entity._position += interact._velocity * consts.DELTA_TIME
 
         # stage 1: detect
         collisions = []
@@ -160,7 +161,7 @@ def single_axis_test(
 ) -> float:
     axis = axis.normalize()
 
-    # print(f"{ctx.RUN_TIME:.5f} | AXIS: {axis}")
+    # print(f"{consts.RUN_TIME:.5f} | AXIS: {axis}")
 
     # object 1
     dot = axis.dot(pts1[0])
@@ -168,10 +169,10 @@ def single_axis_test(
     max1 = dot
     for i in range(1, len(pts1)):
         dot = axis.dot(pts1[i])
-        # print(f"{ctx.RUN_TIME:.5f} | OBJ 1 | DOT: {dot}, POINT: {pts1[i]}")
+        # print(f"{consts.RUN_TIME:.5f} | OBJ 1 | DOT: {dot}, POINT: {pts1[i]}")
         min1 = min(min1, dot)
         max1 = max(max1, dot)
-    # print(f"{ctx.RUN_TIME:.5f} | OBJ 1 | LEFT: {min1}, RIGHT: {max1}")
+    # print(f"{consts.RUN_TIME:.5f} | OBJ 1 | LEFT: {min1}, RIGHT: {max1}")
 
     # object 2
     dot = axis.dot(pts2[0])
@@ -179,11 +180,11 @@ def single_axis_test(
     max2 = dot
     for i in range(1, len(pts2)):
         dot = axis.dot(pts2[i])
-        # print(f"{ctx.RUN_TIME:.5f} | OBJ 2 | DOT: {dot}, POINT: {pts2[i]}")
+        # print(f"{consts.RUN_TIME:.5f} | OBJ 2 | DOT: {dot}, POINT: {pts2[i]}")
         min2 = min(min2, dot)
         max2 = max(max2, dot)
 
-    # print(f"{ctx.RUN_TIME:.5f} | OBJ 2 | LEFT: {min2}, RIGHT: {max2}")
+    # print(f"{consts.RUN_TIME:.5f} | OBJ 2 | LEFT: {min2}, RIGHT: {max2}")
 
     # who is more left?
     # left = (min1, max1) if min1 < min2 else (min2, max2)
@@ -228,7 +229,7 @@ class CollisionManifold:
 
     # ------------------------------------------------------------------------ #
     def __str__(self):
-        return f"{ctx.RUN_TIME:.5f} | Resolving: {self._interact1._shape.__class__.__name__} -> {self._interact2._shape.__class__.__name__}"
+        return f"{consts.RUN_TIME:.5f} | Resolving: {self._interact1._shape.__class__.__name__} -> {self._interact2._shape.__class__.__name__}"
 
 
 # ======================================================================== #

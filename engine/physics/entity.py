@@ -1,6 +1,7 @@
 import pygame
 
-from engine import context as ctx
+import engine.context as ctx
+import engine.constants as consts
 
 # ======================================================================== #
 # Entity
@@ -95,7 +96,7 @@ class Entity:
         # kill all components
         for component in list(self._components.values()):
             self._world._gamestate._ecs.remove_component(component)
-            # print(f"{ctx.RUN_TIME:.5f} | REMAINING COMPS:", self._components)
+            # print(f"{consts.RUN_TIME:.5f} | REMAINING COMPS:", self._components)
 
     # ------------------------------------------------------------------------ #
     # special properties
@@ -127,4 +128,4 @@ class Entity:
             return
         self._alive = value
         if not value:
-            ctx.CTX_SIGNAL_HANDLER.emit_signal("SORA_ENTITY_DEATH", self)
+            consts.CTX_SIGNAL_HANDLER.emit_signal("SORA_ENTITY_DEATH", self)

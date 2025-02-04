@@ -1,4 +1,5 @@
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.system import ecs
 from engine.system import world
@@ -34,4 +35,4 @@ class AABBColliderComponent(interact.ShapeComponent):
         self._rect.center = self._entity._position
 
     def debug(self):
-        pygame.draw.rect(ctx.W_FRAMEBUFFER, (255, 0, 255), self._rect, 1)
+        pygame.draw.rect(consts.W_FRAMEBUFFER, (255, 0, 255), self._rect, 1)

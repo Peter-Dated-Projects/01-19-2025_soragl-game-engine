@@ -3,6 +3,7 @@ import json
 import pygame
 
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.system import ecs
 
@@ -62,7 +63,7 @@ class Animation:
         for resource in meta["resources"]:
             # if not loaded, load from file
             if resource["type"] == "image":
-                resources[resource["file"]] = ctx.CTX_RESOURCE_MANAGER.load(
+                resources[resource["file"]] = consts.CTX_RESOURCE_MANAGER.load(
                     os.path.join(_base_path, resource["file"])
                 )
             elif resource["type"] == "spritesheet":
@@ -148,7 +149,7 @@ class AnimationRegister:
     # ------------------------------------------------------------------------ #
 
     def update(self):
-        self._delta_time += ctx.DELTA_TIME
+        self._delta_time += consts.DELTA_TIME
         if self._delta_time > self.get_current_sprite_duration():
             self._current_frame += 1
             if self._current_frame >= len(self._animation._sprites):

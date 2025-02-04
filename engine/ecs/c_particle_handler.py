@@ -3,6 +3,7 @@ import pygame
 import random
 
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.system import ecs
 
@@ -58,7 +59,7 @@ class ParticleHandlerComponent(ecs.Component):
 
 
 def default_create_func(self):
-    self._timer += ctx.DELTA_TIME
+    self._timer += consts.DELTA_TIME
     if self._timer < self._update_time:
         return
     self._timer = 0
@@ -98,23 +99,23 @@ def default_update_func(self):
             continue
 
         # update position
-        particle[1] += particle[2] * ctx.DELTA_TIME
+        particle[1] += particle[2] * consts.DELTA_TIME
         particle[2] *= 0.99
         # update rotation
-        particle[3] += particle[4] * ctx.DELTA_TIME
+        particle[3] += particle[4] * consts.DELTA_TIME
         particle[4] *= 0.99
         # update time
-        particle[6] += ctx.DELTA_TIME
+        particle[6] += consts.DELTA_TIME
 
         # render
         corners = [
-            pygame.Vector2(ctx.Constants.UP * particle[5]).rotate(particle[3]),
-            pygame.Vector2(ctx.Constants.RIGHT * particle[5]).rotate(particle[3]),
-            pygame.Vector2(ctx.Constants.DOWN * particle[5]).rotate(particle[3]),
-            pygame.Vector2(ctx.Constants.LEFT * particle[5]).rotate(particle[3]),
+            pygame.Vector2(consts.Constants.UP * particle[5]).rotate(particle[3]),
+            pygame.Vector2(consts.Constants.RIGHT * particle[5]).rotate(particle[3]),
+            pygame.Vector2(consts.Constants.DOWN * particle[5]).rotate(particle[3]),
+            pygame.Vector2(consts.Constants.LEFT * particle[5]).rotate(particle[3]),
         ]
         pygame.draw.lines(
-            ctx.W_FRAMEBUFFER,
+            consts.W_FRAMEBUFFER,
             particle[7],
             True,
             [particle[1] + corner for corner in corners],

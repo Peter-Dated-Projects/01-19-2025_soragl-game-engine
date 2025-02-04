@@ -1,6 +1,7 @@
 import pygame
 
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.physics import interact
 from engine.physics.ecs import c_AABB
@@ -28,25 +29,25 @@ def _detect_aabb_aabb(
     ab1 = shape1.get_abspoints()
     ab2 = shape2.get_abspoints()
 
-    # print(f"{ctx.RUN_TIME:.5f} | AB1: {ab1}, ENTITY_POS: {interact1._entity._position}")
-    # print(f"{ctx.RUN_TIME:.5f} | AB2: {ab2}, ENTITY_POS: {interact2._entity._position}")
+    # print(f"{consts.RUN_TIME:.5f} | AB1: {ab1}, ENTITY_POS: {interact1._entity._position}")
+    # print(f"{consts.RUN_TIME:.5f} | AB2: {ab2}, ENTITY_POS: {interact2._entity._position}")
 
     result = interact.CollisionManifold(
         interact1,
         interact2,
-        ctx.CTX_WORLD,
+        consts.CTX_WORLD,
         extra={
             "penetration": pygame.Vector2(
                 interact.single_axis_test(
                     ab1,
                     ab2,
-                    ctx.Constants.RIGHT,
+                    consts.Constants.RIGHT,
                 )
                 / 2,
                 interact.single_axis_test(
                     ab1,
                     ab2,
-                    ctx.Constants.UP,
+                    consts.Constants.UP,
                 )
                 / 2,
             )
@@ -85,11 +86,11 @@ def _detect_aabb_sorabox2d(
     ab1 = shape1.get_abspoints()
     ab2 = shape2.get_abspoints()
 
-    # print(f"{ctx.RUN_TIME:.5f} | AB1: {ab1}, ENTITY_POS: {interact1._entity._position}")
-    # print(f"{ctx.RUN_TIME:.5f} | AB2: {ab2}, ENTITY_POS: {interact2._entity._position}")
+    # print(f"{consts.RUN_TIME:.5f} | AB1: {ab1}, ENTITY_POS: {interact1._entity._position}")
+    # print(f"{consts.RUN_TIME:.5f} | AB2: {ab2}, ENTITY_POS: {interact2._entity._position}")
 
     # we only care if they hit or not
-    result = interact.CollisionManifold(interact1, interact2, ctx.CTX_WORLD)
+    result = interact.CollisionManifold(interact1, interact2, consts.CTX_WORLD)
 
     return result
 
@@ -124,7 +125,7 @@ def _detect_sorabox2d_sorabox2d(
     ab2 = shape2.get_abspoints()
 
     # we only care if they hit or not
-    result = interact.CollisionManifold(interact1, interact2, ctx.CTX_WORLD)
+    result = interact.CollisionManifold(interact1, interact2, consts.CTX_WORLD)
 
     return result
 

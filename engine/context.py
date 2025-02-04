@@ -1,66 +1,24 @@
-import pygame
-import engine
 import time
+import pygame
+import numpy as np
+
+import glm
+import moderngl as mgl
 
 from engine.system import signal
-from engine.system import ecs
 from engine.system import gamestate
+
+from engine.graphics import camera
 
 from engine.physics import entity
 
 from engine.io import resourcemanager
 from engine.io import inputhandler
 
-# ======================================================================== #
-# context
-# ======================================================================== #
+from OpenGL.GL import *
+from OpenGL.GLUT import *
 
-ENGINE_NAME = "SORAGL"
-
-# all static data and objects
-# singleton for main engine data
-
-RUNNING = False
-DEBUG_MODE = False
-
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
-WINDOW_TITLE = "Paint Gun Rogue-Lite"
-WINDOW_FPS = 60
-WINDOW_BIT_DEPTH = 32
-WINDOW_FLAGS = pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE
-WINDOW_ICON = "assets/icon.png"
-
-FRAMEBUFFER_WIDTH = 1280
-FRAMEBUFFER_HEIGHT = 720
-FRAMEBUFFER_BIT_DEPTH = 32
-FRAMEBUFFER_FLAGS = pygame.SRCALPHA
-
-BACKGROUND_COLOR = (255, 0, 0)
-
-# pygame objects
-W_SURFACE = None
-W_CLOCK = None
-W_FRAMEBUFFER = None
-
-# time
-DELTA_TIME = 0
-START_TIME = 0
-END_TIME = 0
-
-RUN_TIME = 0
-
-# objects
-CTX_WINDOW = None
-CTX_ECS_HANDLER = None
-CTX_INPUT_HANDLER = None
-CTX_SIGNAL_HANDLER = None
-CTX_RESOURCE_MANAGER = None
-CTX_GAMESTATE_MANAGER = None
-
-# world constants
-DEFAULT_CHUNK_PIXEL_WIDTH = 4096
-DEFAULT_CHUNK_PIXEL_HEIGHT = 4096
+import engine.constants as consts
 
 
 # ======================================================================== #
@@ -69,110 +27,262 @@ DEFAULT_CHUNK_PIXEL_HEIGHT = 4096
 
 
 def init():
+    pygame.init()
 
-    # create window object
-    global W_SURFACE, W_CLOCK, W_FRAMEBUFFER
+    # ------------------------------------------------------------------------ #
+    # opengl setup
+    # ------------------------------------------------------------------------ #
+    print("Initializing OpenGL Context...")
 
-    W_SURFACE = pygame.display.set_mode(
-        (WINDOW_WIDTH, WINDOW_HEIGHT), WINDOW_FLAGS, WINDOW_BIT_DEPTH
+    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
+    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
+    pygame.display.gl_set_attribute(
+        pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE
     )
-    W_CLOCK = pygame.time.Clock()
-    W_FRAMEBUFFER = pygame.Surface(
-        (FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT),
-        FRAMEBUFFER_FLAGS,
-        FRAMEBUFFER_BIT_DEPTH,
-    ).convert_alpha()
-    # set pygame window specs
-    pygame.display.set_caption(WINDOW_TITLE)
-    if WINDOW_ICON:
-        pygame.display.set_icon(WINDOW_ICON)
+    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_FORWARD_COMPATIBLE_FLAG, 1)
 
-    # create objects
-    global CTX_SIGNAL_HANDLER
-    global CTX_RESOURCE_MANAGER
-    global CTX_GAMESTATE_MANAGER
-    global CTX_ECS_HANDLER
-    global CTX_INPUT_HANDLER
-
-    CTX_INPUT_HANDLER = inputhandler.InputHandler()
-    CTX_SIGNAL_HANDLER = signal.SignalHandler()
-    CTX_RESOURCE_MANAGER = resourcemanager.ResourceManager()
-
-    CTX_GAMESTATE_MANAGER = gamestate.GameStateManager()
-    # update ecs handler
-    CTX_ECS_HANDLER = CTX_GAMESTATE_MANAGER.get_current_ecs()
+    # ------------------------------------------------------------------------ #
+    # pygame window
+    # ------------------------------------------------------------------------ #
 
     print("Initializing pygame window Context...")
+
+    consts.W_SURFACE = pygame.display.set_mode(
+        (consts.WINDOW_WIDTH, consts.WINDOW_HEIGHT),
+        consts.WINDOW_FLAGS,
+        consts.WINDOW_BIT_DEPTH,
+    )
+    consts.MGL_CONTEXT = mgl.create_context()
+    consts.W_CLOCK = pygame.time.Clock()
+    consts.W_FRAMEBUFFER = pygame.Surface(
+        (consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT),
+        consts.FRAMEBUFFER_FLAGS,
+        consts.FRAMEBUFFER_BIT_DEPTH,
+    ).convert_alpha()
+    # set pygame window specs
+    pygame.display.set_caption(consts.WINDOW_TITLE)
+    if consts.WINDOW_ICON:
+        pygame.display.set_icon(consts.WINDOW_ICON)
+
+    # create objects
+    consts.CTX_INPUT_HANDLER = inputhandler.InputHandler()
+    consts.CTX_SIGNAL_HANDLER = signal.SignalHandler()
+    consts.CTX_RESOURCE_MANAGER = resourcemanager.ResourceManager()
+
+    consts.CTX_GAMESTATE_MANAGER = gamestate.GameStateManager()
+    # update ecs handler
+    consts.CTX_ECS_HANDLER = consts.CTX_GAMESTATE_MANAGER.get_current_ecs()
 
     # ------------------------------------------------------------------------ #
     # register signals
     # ------------------------------------------------------------------------ #
 
-    CTX_SIGNAL_HANDLER.register_signal("SORA_ENTITY_DEATH", [entity.Entity])
+    consts.CTX_SIGNAL_HANDLER.register_signal("SORA_ENTITY_DEATH", [entity.Entity])
 
 
 def run():
     # run game
-    global RUNNING, START_TIME, END_TIME, DELTA_TIME, RUN_TIME
-    RUNNING = True
+    consts.RUNNING = True
 
     # begin the game loop
-    START_TIME = time.time()
-    END_TIME = START_TIME
-    RUN_TIME = 0
+    consts.START_TIME = time.time()
+    consts.END_TIME = consts.START_TIME
+    consts.RUN_TIME = 0
 
-    while RUNNING:
+    # ------------------------------------------------------------------------ #
+    # testing
+
+    # get opengl data
+    print("OpenGL version:", glGetString(GL_VERSION).decode())
+    print("GLSL version:", glGetString(GL_SHADING_LANGUAGE_VERSION).decode())
+
+    consts.MGL_CONTEXT.enable(flags=mgl.DEPTH_TEST)
+    glDepthFunc(GL_LESS)
+    # glEnable(GL_BLEND)
+    # glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    # vertices
+    vertices = [
+        # point 0
+        (1.0, 1.0, 1.0),
+        # point 1
+        (-1.0, 1.0, 1.0),
+        # point 2
+        (-1.0, -1.0, 1.0),
+        # point 3
+        (1.0, -1.0, 1.0),
+        # point 4
+        (1.0, 1.0, -1.0),
+        # point 5
+        (-1.0, 1.0, -1.0),
+        # point 6
+        (-1.0, -1.0, -1.0),
+        # point 7
+        (1.0, -1.0, -1.0),
+    ]
+    indices = [
+        # front face
+        (0, 1, 2),
+        (0, 2, 3),
+        # back face
+        (4, 5, 6),
+        (4, 6, 7),
+        # left face
+        (4, 0, 3),
+        (4, 3, 7),
+        # right face
+        (1, 5, 6),
+        (1, 6, 2),
+        # top face
+        (3, 2, 6),
+        (3, 6, 7),
+        # bottom face
+        (4, 5, 1),
+        (4, 1, 0),
+    ]
+    texcoords = [(0, 0), (1, 0), (1, 1), (0, 1)]
+    texcoord_indices = [
+        # front face
+        (0, 1, 2),
+        (0, 2, 3),
+        # back face
+        (0, 1, 2),
+        (0, 2, 3),
+        # left face
+        (0, 1, 2),
+        (0, 2, 3),
+        # right face
+        (0, 1, 2),
+        (0, 2, 3),
+        # top face
+        (0, 1, 2),
+        (0, 2, 3),
+        # bottom face
+        (0, 1, 2),
+        (0, 2, 3),
+    ]
+
+    v_data = np.array([vertices[i] for tri in indices for i in tri], dtype=np.float32)
+    t_data = np.array(
+        [texcoords[i] for tri in texcoord_indices for i in tri], dtype=np.float32
+    )
+    complete_vertex_data = np.hstack((v_data, t_data))
+
+    # shader
+    vshader_code = open("assets/shaders/default-vertex.glsl").read()
+    fshader_code = open("assets/shaders/default-fragment.glsl").read()
+    shader_program = consts.MGL_CONTEXT.program(
+        vertex_shader=vshader_code, fragment_shader=fshader_code
+    )
+
+    # vao + vbo + ibo + attribs
+    vbo = consts.MGL_CONTEXT.buffer(complete_vertex_data)
+    vao = consts.MGL_CONTEXT.vertex_array(
+        shader_program, [(vbo, "3f 2f", "in_position", "in_texcoords")]
+    )
+
+    _3dcam = camera.Camera3D(
+        5,
+        fov=45,
+        near=0.1,
+        far=1000,
+        position=glm.vec3(2, 2, -3),
+        forward=-glm.normalize(glm.vec3(2, 2, -3)),
+    )
+    m_model = glm.mat4()
+
+    # shader
+    shader_program["m_proj"].write(_3dcam._projection)
+    shader_program["m_view"].write(_3dcam._view)
+    shader_program["m_model"].write(m_model)
+
+    # texture
+    texture = consts.MGL_CONTEXT.texture(
+        size=(consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT),
+        components=4,
+        data=pygame.image.tostring(consts.W_FRAMEBUFFER, "RGBA"),
+    )
+    shader_program["tex"] = 0
+    texture.use()
+
+    # ------------------------------------------------------------------------ #
+
+    while consts.RUNNING:
+        # ------------------------------------------------------------------------ #
+        # time
+        # ------------------------------------------------------------------------ #
         print(
-            f"{RUN_TIME:.5f} | ===================== START NEW LOOP ================================"
+            f"{consts.RUN_TIME:.5f} | ===================== START NEW LOOP ================================"
         )
         # calculate delta time
-        START_TIME = time.time()
-        DELTA_TIME = START_TIME - END_TIME
-        END_TIME = START_TIME
-        RUN_TIME += DELTA_TIME
+        consts.START_TIME = time.time()
+        consts.DELTA_TIME = consts.START_TIME - consts.END_TIME
+        consts.END_TIME = consts.START_TIME
+        consts.RUN_TIME += consts.DELTA_TIME
+
+        # ------------------------------------------------------------------------ #
+        # events
+        # ------------------------------------------------------------------------ #
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                RUNNING = False
+                consts.RUNNING = False
 
             # window resize events
             if event.type == pygame.VIDEORESIZE:
-                WINDOW_WIDTH = event.w
-                WINDOW_HEIGHT = event.h
+                consts.WINDOW_WIDTH = event.w
+                consts.WINDOW_HEIGHT = event.h
 
-        # reset background
-        W_FRAMEBUFFER.fill(BACKGROUND_COLOR)
+        # ------------------------------------------------------------------------ #
+        # reset + clearing
+        # ------------------------------------------------------------------------ #
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        consts.W_FRAMEBUFFER.fill(consts.BACKGROUND_COLOR)
+
+        # ------------------------------------------------------------------------ #
+        # updating
+        # ------------------------------------------------------------------------ #
 
         # update game state
-        CTX_INPUT_HANDLER.update()
-        CTX_GAMESTATE_MANAGER.update()
+        consts.CTX_INPUT_HANDLER.update()
+        consts.CTX_GAMESTATE_MANAGER.update()
 
         # update aspects
-        CTX_SIGNAL_HANDLER.handle()
-        W_SURFACE.blit(
-            pygame.transform.scale(W_FRAMEBUFFER, W_SURFACE.get_size()), (0, 0)
+        consts.CTX_SIGNAL_HANDLER.handle()
+        consts.W_SURFACE.blit(
+            pygame.transform.scale(consts.W_FRAMEBUFFER, consts.W_SURFACE.get_size()),
+            (0, 0),
         )
+
+        # ------------------------------------------------------------------------ #
+        # drawing
+        # ------------------------------------------------------------------------ #
+
+        # rotate the model matrix
+        m_model = glm.rotate(m_model, consts.DELTA_TIME, glm.vec3(0, 1, 0))
+        shader_program["m_model"].write(m_model)
+
+        texture = consts.MGL_CONTEXT.texture(
+            size=(consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT),
+            components=4,
+            data=pygame.image.tostring(consts.W_FRAMEBUFFER, "RGBA", flipped=True),
+        )
+        texture.use()
+        vao.render()
+
         # update window
         pygame.display.flip()
-        W_CLOCK.tick(WINDOW_FPS)
+        consts.W_CLOCK.tick(consts.WINDOW_FPS)
+
+    # cleaning
+    vao.release()
+    vbo.release()
+    shader_program.release()
+
+    pygame.quit()
 
 
 def stop():
     # stop game
-    global RUNNING
-    RUNNING = False
-
-
-# ======================================================================== #
-# constants
-# ======================================================================== #
-
-
-class Constants:
-
-    UP = pygame.Vector2(0, -1)
-    DOWN = pygame.Vector2(0, 1)
-    LEFT = pygame.Vector2(-1, 0)
-    RIGHT = pygame.Vector2(1, 0)
-
-    GRAVITY_VECTOR = DOWN * 9.8
+    consts.RUNNING = False

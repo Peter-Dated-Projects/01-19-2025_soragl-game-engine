@@ -1,4 +1,5 @@
 import engine.context as ctx
+import engine.constants as consts
 
 from engine.system import world, ecs
 
@@ -69,8 +70,8 @@ class GameStateManager:
 
     def set_game_state(self, name: str):
         self._current_state = self._states.get(name)
-        ctx.CTX_ECS_HANDLER = self._current_state.get_ecs()
-        ctx.CTX_WORLD = self._current_state.get_world()
+        consts.CTX_ECS_HANDLER = self._current_state.get_ecs()
+        consts.CTX_WORLD = self._current_state.get_world()
         self._current_state.__post_init__()
 
     def add_game_state(self, name: str, game_state: GameState):

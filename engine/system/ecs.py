@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import engine.context as ctx
+import engine.constants as consts
 
 # ======================================================================== #
 # aspect component handler
@@ -55,7 +56,7 @@ class ECSHandler:
             return
 
         print(
-            f"{ctx.RUN_TIME:.5f} | REMOVING COMPONENT",
+            f"{consts.RUN_TIME:.5f} | REMOVING COMPONENT",
             component._uuid,
             component.__class__,
         )
