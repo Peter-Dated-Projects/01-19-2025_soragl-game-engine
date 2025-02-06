@@ -1,7 +1,7 @@
 import os
 import sys
-import platform
 import math
+import platform
 
 if not os.environ.get("PYTHONHASHSEED"):
     os.environ["PYTHONHASHSEED"] = "13"
@@ -15,7 +15,10 @@ if not os.environ.get("PYTHONHASHSEED"):
 # setup
 # ======================================================================== #
 
+import glm
 import pygame
+import numpy as np
+
 
 import engine.context as ctx
 import engine.constants as consts
@@ -30,7 +33,15 @@ from engine.system import log
 from engine.system import signal
 from engine.system import animation
 
+from engine.graphics import buffer
+from engine.graphics import shader
+from engine.graphics import camera
+from engine.graphics import texture
 from engine.graphics import spritesheet
+from engine.graphics import constants as gfx_consts
+
+from engine.graphics.ecs import c_mesh
+from engine.graphics.ecs import c_manifoldrenderer
 
 from engine.io import resourcemanager
 from engine.io import inputhandler
@@ -40,6 +51,9 @@ from engine.physics import interact
 
 from engine.physics.ecs import c_AABB
 from engine.physics.ecs import c_SoraBox2D
+
+# ------------------------------------------------------------------------ #
+
 
 consts.WINDOW_WIDTH = 1280
 consts.WINDOW_HEIGHT = 720
@@ -307,6 +321,145 @@ def kill_static():
 
 
 t2 = e1.add_component(c_task.TaskComponent("kill_static", kill_static))
+
+# opengl testing
+_3dcam = camera.Camera3D(
+    5,
+    fov=45,
+    near=0.1,
+    far=1000,
+    position=glm.vec3(2, 2, -3),
+    forward=-glm.normalize(glm.vec3(2, 2, -3)),
+)
+complete_vert_data = buffer.GLBufferObject(
+    np.hstack(
+        [
+            gfx_consts.Cube.get_cube_vert(),
+            gfx_consts.Cube.get_cube_tex(),
+            gfx_consts.generate_vertex_data(
+                [(0.0,), (1.0,)],
+                [
+                    # front face
+                    (0, 0, 0),
+                    (0, 0, 0),
+                    # back face
+                    (0, 0, 0),
+                    (0, 0, 0),
+                    # left face
+                    (1, 1, 1),
+                    (1, 1, 1),
+                    # right face
+                    (1, 1, 1),
+                    (1, 1, 1),
+                    # top face
+                    (0, 0, 0),
+                    (0, 0, 0),
+                    # bottom face
+                    (0, 0, 0),
+                    (0, 0, 0),
+                ],
+            ),
+        ]
+    )
+)
+shader_program = shader.ShaderProgram(
+    vertex_shader=shader.Shader("assets/shaders/default-vertex.glsl"),
+    fragment_shader=shader.Shader("assets/shaders/default-fragment.glsl"),
+)
+render_entity = consts.CTX_WORLD.add_entity(entity.Entity())
+render_entity.add_component(c_manifoldrenderer.ManifoldRendererComponent())
+rman = render_entity.add_component(
+    c_mesh.MeshComponent(
+        buffer.RenderingManifold(
+            vao=buffer.VAOObject(
+                shader_program,
+                [
+                    (
+                        complete_vert_data(),
+                        "3f 2f 1f",
+                        "in_position",
+                        "in_texcoords",
+                        "in_tex",
+                    )
+                ],
+            ),
+        )
+    )
+)
+
+rman().set_texture(0, texture.Texture(raw_image=consts.W_FRAMEBUFFER))
+
+m_model_rman = glm.mat4()
+
+rman().write_uniform("m_model", m_model_rman)
+rman().write_uniform("m_proj", _3dcam._projection)
+rman().write_uniform("m_view", _3dcam._view)
+
+
+def sub_task1():
+    global m_model_rman, rman
+    result = glm.rotate(m_model_rman, consts.RUN_TIME, glm.vec3(0, 1, 0))
+    result = glm.scale(result, glm.vec3(0.2))
+
+    rman().write_uniform("m_model", result)
+
+    rman().set_texture(0, texture.Texture(raw_image=consts.W_FRAMEBUFFER))
+    rman().set_texture(1, texture.Texture.get_texture("assets/snowman.jpg"))
+
+
+render_entity.add_component(c_task.TaskComponent("sub_task", sub_task1))
+
+
+# render entity 2
+
+render_entity2 = consts.CTX_WORLD.add_entity(entity.Entity())
+render_entity2.add_component(c_manifoldrenderer.ManifoldRendererComponent())
+rman2 = render_entity2.add_component(
+    c_mesh.MeshComponent(
+        buffer.RenderingManifold(
+            vao=buffer.VAOObject(
+                shader_program,
+                [
+                    (
+                        complete_vert_data(),
+                        "3f 2f 1f",
+                        "in_position",
+                        "in_texcoords",
+                        "in_tex",
+                    )
+                ],
+            ),
+        )
+    )
+)
+
+# no need to reset texture at location = 0 (because same shader + already set)
+
+m_model_rman2 = glm.mat4()
+m_model_rman2 = glm.translate(m_model_rman2, glm.vec3(0, 0, 0))
+
+# no need to write projection, view, and model matrices (because same shader + already set)
+
+
+def sub_task2():
+    global m_model_rman2, rman2
+    result = glm.translate(
+        m_model_rman2,
+        glm.vec3(
+            math.sin(consts.RUN_TIME) * 1.5,
+            0,
+            math.cos(consts.RUN_TIME) * 1.5,
+        ),
+    )
+    result = glm.rotate(result, -consts.RUN_TIME, glm.vec3(0, 1, 0))
+    result = glm.scale(result, glm.vec3(0.1))
+
+    rman2().write_uniform("m_model", result)
+
+    rman2().set_texture(1, texture.Texture.get_texture("assets/cult.jpg"))
+
+
+render_entity2.add_component(c_task.TaskComponent("sub_task", sub_task2))
 
 # ======================================================================== #
 # run game

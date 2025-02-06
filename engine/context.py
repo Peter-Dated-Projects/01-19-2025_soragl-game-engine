@@ -5,10 +5,15 @@ import numpy as np
 import glm
 import moderngl as mgl
 
+import pywavefront
+
 from engine.system import signal
 from engine.system import gamestate
 
+from engine.graphics import buffer
 from engine.graphics import camera
+from engine.graphics import shader
+from engine.graphics import texture
 
 from engine.physics import entity
 
@@ -101,110 +106,6 @@ def run():
     # glEnable(GL_BLEND)
     # glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    # vertices
-    vertices = [
-        # point 0
-        (1.0, 1.0, 1.0),
-        # point 1
-        (-1.0, 1.0, 1.0),
-        # point 2
-        (-1.0, -1.0, 1.0),
-        # point 3
-        (1.0, -1.0, 1.0),
-        # point 4
-        (1.0, 1.0, -1.0),
-        # point 5
-        (-1.0, 1.0, -1.0),
-        # point 6
-        (-1.0, -1.0, -1.0),
-        # point 7
-        (1.0, -1.0, -1.0),
-    ]
-    indices = [
-        # front face
-        (0, 1, 2),
-        (0, 2, 3),
-        # back face
-        (4, 5, 6),
-        (4, 6, 7),
-        # left face
-        (4, 0, 3),
-        (4, 3, 7),
-        # right face
-        (1, 5, 6),
-        (1, 6, 2),
-        # top face
-        (3, 2, 6),
-        (3, 6, 7),
-        # bottom face
-        (4, 5, 1),
-        (4, 1, 0),
-    ]
-    texcoords = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    texcoord_indices = [
-        # front face
-        (0, 1, 2),
-        (0, 2, 3),
-        # back face
-        (0, 1, 2),
-        (0, 2, 3),
-        # left face
-        (0, 1, 2),
-        (0, 2, 3),
-        # right face
-        (0, 1, 2),
-        (0, 2, 3),
-        # top face
-        (0, 1, 2),
-        (0, 2, 3),
-        # bottom face
-        (0, 1, 2),
-        (0, 2, 3),
-    ]
-
-    v_data = np.array([vertices[i] for tri in indices for i in tri], dtype=np.float32)
-    t_data = np.array(
-        [texcoords[i] for tri in texcoord_indices for i in tri], dtype=np.float32
-    )
-    complete_vertex_data = np.hstack((v_data, t_data))
-
-    # shader
-    vshader_code = open("assets/shaders/default-vertex.glsl").read()
-    fshader_code = open("assets/shaders/default-fragment.glsl").read()
-    shader_program = consts.MGL_CONTEXT.program(
-        vertex_shader=vshader_code, fragment_shader=fshader_code
-    )
-
-    # vao + vbo + ibo + attribs
-    vbo = consts.MGL_CONTEXT.buffer(complete_vertex_data)
-    vao = consts.MGL_CONTEXT.vertex_array(
-        shader_program, [(vbo, "3f 2f", "in_position", "in_texcoords")]
-    )
-
-    _3dcam = camera.Camera3D(
-        5,
-        fov=45,
-        near=0.1,
-        far=1000,
-        position=glm.vec3(2, 2, -3),
-        forward=-glm.normalize(glm.vec3(2, 2, -3)),
-    )
-    m_model = glm.mat4()
-
-    # shader
-    shader_program["m_proj"].write(_3dcam._projection)
-    shader_program["m_view"].write(_3dcam._view)
-    shader_program["m_model"].write(m_model)
-
-    # texture
-    texture = consts.MGL_CONTEXT.texture(
-        size=(consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT),
-        components=4,
-        data=pygame.image.tostring(consts.W_FRAMEBUFFER, "RGBA"),
-    )
-    shader_program["tex"] = 0
-    texture.use()
-
     # ------------------------------------------------------------------------ #
 
     while consts.RUNNING:
@@ -259,28 +160,22 @@ def run():
         # drawing
         # ------------------------------------------------------------------------ #
 
-        # rotate the model matrix
-        m_model = glm.rotate(m_model, consts.DELTA_TIME, glm.vec3(0, 1, 0))
-        shader_program["m_model"].write(m_model)
-
-        texture = consts.MGL_CONTEXT.texture(
-            size=(consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT),
-            components=4,
-            data=pygame.image.tostring(consts.W_FRAMEBUFFER, "RGBA", flipped=True),
-        )
-        texture.use()
-        vao.render()
-
         # update window
         pygame.display.flip()
         consts.W_CLOCK.tick(consts.WINDOW_FPS)
 
-    # cleaning
-    vao.release()
-    vbo.release()
-    shader_program.release()
+    # ------------------------------------------------------------------------ #
+    # final cleaning
+    # ------------------------------------------------------------------------ #
+
+    # clear up all game states
+    consts.CTX_GAMESTATE_MANAGER.__on_clean__()
+    # clean up textures
+    texture.Texture.__on_clean__()
 
     pygame.quit()
+
+    print("Game Stopped + Caches + Memory Cleaned")
 
 
 def stop():

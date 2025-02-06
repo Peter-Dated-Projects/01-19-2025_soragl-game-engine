@@ -58,6 +58,9 @@ class World2D(entity.Entity):
         )
         consts.CTX_ECS_HANDLER.add_component(self._entity_chunk_change_task, self)
 
+    def __on_clean__(self):
+        pass
+
     # ------------------------------------------------------------------------ #
     # logic
     # ------------------------------------------------------------------------ #

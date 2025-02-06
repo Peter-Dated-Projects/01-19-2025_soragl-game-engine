@@ -24,6 +24,10 @@ class GameState:
         self._world.__post_init__()
         self._ecs.__post_init__()
 
+    def __on_clean__(self):
+        self._world.__on_clean__()
+        self._ecs.__on_clean__()
+
     # ------------------------------------------------------------------------ #
     # logic
     # ------------------------------------------------------------------------ #
@@ -50,6 +54,10 @@ class GameStateManager:
         # default initial state
         self.add_game_state("default", GameState("default"))
         self.set_game_state("default")
+
+    def __on_clean__(self):
+        for state in self._states.values():
+            state.__on_clean__()
 
     # ------------------------------------------------------------------------ #
     # logic

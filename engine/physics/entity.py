@@ -3,6 +3,8 @@ import pygame
 import engine.context as ctx
 import engine.constants as consts
 
+from engine.system import ecs
+
 # ======================================================================== #
 # Entity
 # ======================================================================== #

@@ -21,6 +21,11 @@ class ECSHandler:
     def __post_init__(self):
         pass
 
+    def __on_clean__(self):
+        for component_class in self._components:
+            for component in self._components[component_class].values():
+                component.__on_clean__()
+
     @classmethod
     def generate_aspect_uuid(cls):
         cls.ASPECT_UUID_COUNTER += 1
@@ -95,6 +100,9 @@ class Component:
     def __post_init__(self):
         if not self._uuid:
             self._uuid = ECSHandler.generate_component_uuid()
+
+    def __on_clean__(self):
+        pass
 
     # -------------------------------------------------------------------- #
     # logic
