@@ -1,3 +1,4 @@
+import engine.context as ctx
 import engine.constants as consts
 
 # ============================================================================= #
@@ -24,6 +25,36 @@ class Shader:
 
 
 class ShaderProgram:
+    CACHE = {}
+    SHADER_PROGRAM_COUNTER = 0
+
+    @classmethod
+    def generate_shader_program_uuid(cls):
+        cls.SHADER_PROGRAM_COUNTER += 1
+        return cls.SHADER_PROGRAM_COUNTER
+
+    @classmethod
+    def __on_clean__(cls):
+        print(f"{consts.RUN_TIME:.5f} | ---- CLEANING SHADER PROGRAMS ----")
+        for shader_program in cls.CACHE.values():
+            print(f"{consts.RUN_TIME:.5f} |", shader_program._uuid)
+            shader_program.clean(clean_func=True)
+
+    @classmethod
+    def cache(cls, shader_program):
+        cls.CACHE[shader_program._uuid] = shader_program
+
+    @classmethod
+    def remove_from_cache(cls, shader_program):
+        cls.CACHE.pop(shader_program._uuid)
+        # assume user has handled cleaning etc
+
+    @classmethod
+    def get_shader(cls, shader_uuid: int):
+        return cls.CACHE[shader_uuid]
+
+    # ------------------------------------------------------------------------ #
+
     def __init__(
         self,
         vertex_shader: Shader,
@@ -32,6 +63,9 @@ class ShaderProgram:
         tess_control_shader: Shader = None,
         tess_evaluation_shader: Shader = None,
     ):
+        self._uuid = self.generate_shader_program_uuid()
+        self.cache(self)
+
         self._shaders = {
             "vertex": vertex_shader,
             "fragment": fragment_shader,
@@ -68,8 +102,10 @@ class ShaderProgram:
             ),
         )
 
-    def clean(self):
+    def clean(self, clean_func: bool = False):
         self._program.release()
+        if not clean_func:
+            self.remove_from_cache(self)
 
     # ------------------------------------------------------------------------ #
     # special functions

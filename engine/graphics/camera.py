@@ -60,6 +60,7 @@ class Camera3D(BaseCamera):
         position: glm.vec3 = glm.vec3(0, 0, 0),
         up: glm.vec3 = glm.vec3(0, 1, 0),
         forward: glm.vec3 = glm.vec3(0, 0, 1),
+        orthogonal: bool = False,
     ):
         super().__init__(render_distance)
 
@@ -69,18 +70,30 @@ class Camera3D(BaseCamera):
         self._position = position
         self._up = up
         self._forward = forward
+        self._orthogonal = orthogonal
+
         # view matrix
         self._view = glm.lookAt(
             self._position, self._position + self._forward, self._up
         )
 
-        # create projection
-        self._projection = glm.perspective(
-            glm.radians(fov),
-            consts.W_SURFACE.get_width() / consts.W_SURFACE.get_height(),
-            near,
-            far,
-        )
+        # create projection -- default is perspective
+        if not self._orthogonal:
+            self._projection = glm.perspective(
+                glm.radians(fov),
+                consts.W_SURFACE.get_width() / consts.W_SURFACE.get_height(),
+                near,
+                far,
+            )
+        else:
+            self._projection = glm.ortho(
+                -consts.W_SURFACE.get_width() / 2,
+                consts.W_SURFACE.get_width() / 2,
+                -consts.W_SURFACE.get_height() / 2,
+                consts.W_SURFACE.get_height() / 2,
+                near,
+                far,
+            )
 
 
 # ======================================================================== #

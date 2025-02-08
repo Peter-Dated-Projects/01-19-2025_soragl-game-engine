@@ -41,7 +41,6 @@ from engine.graphics import spritesheet
 from engine.graphics import constants as gfx_consts
 
 from engine.graphics.ecs import c_mesh
-from engine.graphics.ecs import c_manifoldrenderer
 
 from engine.io import resourcemanager
 from engine.io import inputhandler
@@ -107,14 +106,14 @@ if True:
     )
 
     # test - creating entity, adding component, rendering using task component!
-    e1 = consts.CTX_WORLD.add_entity(entity.Entity())
+    e1 = consts.CTX_WORLD.add_entity(entity.Entity(name="e1"))
     e1spr = e1.add_component(
         c_sprite.SpriteComponent(filepath="assets/entities/arrow/32xarrow.png")
     )
     e1spr._extra["offset"] = pygame.Vector2(50, 50)
     e1.add_component(c_sprite.SpriteRendererComponent(e1spr))
     e1._position = pygame.Vector2(100, 100)
-    e1._zlayer = 2
+    e1.zlayer = 2
 
     def draw_image():
         # ctx.W_FRAMEBUFFER.blit(image1, (100, 100))
@@ -150,8 +149,8 @@ if True:
     consts.CTX_SIGNAL_HANDLER.register_receiver("draw_signal", draw_signal)
 
     # test - particle handler
-    e3 = consts.CTX_WORLD.add_entity(entity.Entity())
-    e3._zlayer = -1
+    e3 = consts.CTX_WORLD.add_entity(entity.Entity(name="e3"))
+    e3.zlayer = -1
     ph1 = e3.add_component(
         c_particle_handler.ParticleHandlerComponent(updates_per_second=10)
     )
@@ -254,7 +253,7 @@ if True:
 # walls
 if True:
 
-    left_wall = consts.CTX_WORLD.add_entity(entity.Entity())
+    left_wall = consts.CTX_WORLD.add_entity(entity.Entity(name="left-wall"))
     left_wall.add_component(c_AABB.AABBColliderComponent(20, 300))
     left_wall.add_component(
         interact.InteractionFieldComponent(collision_mask=0b00000001, static=True)
@@ -281,7 +280,7 @@ if True:
     top_wall.add_component(c_sprite.SpriteRendererComponent())
     top_wall._position += pygame.Vector2(200, 100)
 
-    bottom_wall = consts.CTX_WORLD.add_entity(entity.Entity())
+    bottom_wall = consts.CTX_WORLD.add_entity(entity.Entity(name="bottom-wall"))
     bottom_wall.add_component(c_AABB.AABBColliderComponent(600, 20))
     bottom_wall.add_component(
         interact.InteractionFieldComponent(collision_mask=0b00000001, static=True)
@@ -328,8 +327,8 @@ _3dcam = camera.Camera3D(
     fov=45,
     near=0.1,
     far=1000,
-    position=glm.vec3(2, 2, -3),
-    forward=-glm.normalize(glm.vec3(2, 2, -3)),
+    position=glm.vec3(0, 3, -3),
+    forward=-glm.normalize(glm.vec3(0, 3, -3)),
 )
 complete_vert_data = buffer.GLBufferObject(
     np.hstack(
@@ -366,8 +365,8 @@ shader_program = shader.ShaderProgram(
     vertex_shader=shader.Shader("assets/shaders/default-vertex.glsl"),
     fragment_shader=shader.Shader("assets/shaders/default-fragment.glsl"),
 )
-render_entity = consts.CTX_WORLD.add_entity(entity.Entity())
-render_entity.add_component(c_manifoldrenderer.ManifoldRendererComponent())
+
+render_entity = consts.CTX_WORLD.add_entity(entity.Entity(name="star!"))
 rman = render_entity.add_component(
     c_mesh.MeshComponent(
         buffer.RenderingManifold(
@@ -402,18 +401,16 @@ def sub_task1():
     result = glm.scale(result, glm.vec3(0.2))
 
     rman().write_uniform("m_model", result)
-
     rman().set_texture(0, texture.Texture(raw_image=consts.W_FRAMEBUFFER))
     rman().set_texture(1, texture.Texture.get_texture("assets/snowman.jpg"))
 
 
-render_entity.add_component(c_task.TaskComponent("sub_task", sub_task1))
+render_entity.add_component(c_task.TaskComponent("sub_task", sub_task1), priority=1)
 
 
 # render entity 2
 
-render_entity2 = consts.CTX_WORLD.add_entity(entity.Entity())
-render_entity2.add_component(c_manifoldrenderer.ManifoldRendererComponent())
+render_entity2 = consts.CTX_WORLD.add_entity(entity.Entity(name="orbit"))
 rman2 = render_entity2.add_component(
     c_mesh.MeshComponent(
         buffer.RenderingManifold(
@@ -455,11 +452,86 @@ def sub_task2():
     result = glm.scale(result, glm.vec3(0.1))
 
     rman2().write_uniform("m_model", result)
-
     rman2().set_texture(1, texture.Texture.get_texture("assets/cult.jpg"))
 
 
-render_entity2.add_component(c_task.TaskComponent("sub_task", sub_task2))
+render_entity2.add_component(c_task.TaskComponent("sub_task", sub_task2), priority=1)
+
+
+# framebuffer background rendering
+ortho_cam = camera.Camera3D(
+    5,
+    fov=45,
+    near=0.1,
+    far=1000,
+    position=glm.vec3(0, 0, -3),
+    forward=-glm.normalize(glm.vec3(0, 0, -3)),
+    orthogonal=True,
+)
+
+complete_vert_data2 = buffer.GLBufferObject(
+    np.hstack(
+        [
+            gfx_consts.Plane.get_plane_vert(),
+            gfx_consts.Plane.get_plane_tex(),
+            gfx_consts.generate_vertex_data(
+                [(0.0,)],
+                [
+                    (0, 0, 0),
+                    (0, 0, 0),
+                ],
+            ),
+        ]
+    )
+)
+shader_program2 = shader.ShaderProgram(
+    vertex_shader=shader.Shader("assets/shaders/default-vertex.glsl"),
+    fragment_shader=shader.Shader("assets/shaders/default-fragment.glsl"),
+)
+
+render_entity3 = consts.CTX_WORLD.add_entity(entity.Entity(zlayer=1, name="fb"))
+rman3 = render_entity3.add_component(
+    c_mesh.MeshComponent(
+        buffer.RenderingManifold(
+            vao=buffer.VAOObject(
+                shader_program2,
+                [
+                    (
+                        complete_vert_data2(),
+                        "3f 2f 1f",
+                        "in_position",
+                        "in_texcoords",
+                        "in_tex",
+                    )
+                ],
+            ),
+        )
+    )
+)
+
+rman3().set_texture(0, texture.Texture(raw_image=consts.W_FRAMEBUFFER))
+
+m_model_rman3 = glm.mat4()
+m_model_rman3 = glm.rotate(m_model_rman3, math.pi / 2, glm.vec3(1, 0, 0))
+m_model_rman3 = glm.translate(m_model_rman3, glm.vec3(0, -2, 0))
+m_model_rman3 = glm.scale(m_model_rman3, glm.vec3(1))
+
+rman3().write_uniform("m_model", m_model_rman3)
+# rman3().write_uniform("m_proj", ortho_cam._projection)
+# rman3().write_uniform("m_view", ortho_cam._view)
+rman3().write_uniform("m_proj", _3dcam._projection)
+rman3().write_uniform("m_view", _3dcam._view)
+
+
+def sub_task3():
+    global rman3, m_model_rman3
+
+    rman3().set_texture(0, texture.Texture(raw_image=consts.W_FRAMEBUFFER))
+    # rman3().set_texture(0, consts.MGL_FRAMEBUFFER.get_color_attachments()[0])
+
+
+render_entity3.add_component(c_task.TaskComponent("sub_task", sub_task3))
+
 
 # ======================================================================== #
 # run game

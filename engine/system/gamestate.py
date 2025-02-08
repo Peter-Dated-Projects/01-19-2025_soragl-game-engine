@@ -56,7 +56,9 @@ class GameStateManager:
         self.set_game_state("default")
 
     def __on_clean__(self):
+        print(f"{consts.RUN_TIME:.5f} | ---- CLEANING GAME STATE MANAGER ----")
         for state in self._states.values():
+            print(f"{consts.RUN_TIME:.5f} |", state._name)
             state.__on_clean__()
 
     # ------------------------------------------------------------------------ #

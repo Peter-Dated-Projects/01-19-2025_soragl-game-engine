@@ -29,6 +29,10 @@ class SignalHandler:
 
     def handle(self):
         for packet in self._signal_packet_queue:
+            # check if is valid emitted signal
+            if packet._signal_name not in self._signals:
+                continue
+            # handle packet
             self._signals[packet._signal_name].handle_packet(*packet.args)
         self._signal_packet_queue = []
 
@@ -74,7 +78,11 @@ class Signal:
 
     def handle_packet(self, *args):
         for key, receiver in self._receivers.items():
-            print(f"{consts.RUN_TIME:.5f} | EMITTING", key, receiver._function)
+            print(
+                f"{consts.RUN_TIME:.5f} | EMITTING",
+                self._signal_name,
+                receiver._function,
+            )
             receiver.emit_signal(*args)
 
 

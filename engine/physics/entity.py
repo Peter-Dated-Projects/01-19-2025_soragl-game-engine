@@ -22,10 +22,11 @@ class Entity:
     # init
     # ------------------------------------------------------------------------ #
 
-    def __init__(self):
+    def __init__(self, name: str = None, zlayer: int = 0):
         self._entity_id = Entity.generate_entity_id()
         self._layer = None
         self._world = None
+        self._name = name if name else f"GameObject-{self._entity_id}"
 
         # component handler
         self._components: dict[int, ecs.Component] = {}
@@ -36,7 +37,7 @@ class Entity:
         self._prev_zlayer = 0
         self._position = pygame.Vector2()
         self._chunk_pos = (0, 0)
-        self._zlayer = 0
+        self._zlayer = zlayer
         self._alive = True
 
         self._rect = pygame.FRect()
@@ -49,9 +50,12 @@ class Entity:
     # component logic
     # ------------------------------------------------------------------------ #
 
-    def add_component(self, component):
+    def add_component(self, component, priority: int = 0):
         # add to ecs -- if component not in ecs
+        component._priority = priority
         result = self._world._gamestate._ecs.add_component(component, self)
+        for i in self._components.values():
+            i.__post_init__()
         return result
 
     def remove_component(self, component, _reload=True):
@@ -84,6 +88,7 @@ class Entity:
     # ------------------------------------------------------------------------ #
 
     def update(self):
+        print(f"{consts.RUN_TIME:.5f} | UPDATING ENTITY", self, self._zlayer)
         pass
 
     def handle_components(self):
@@ -110,6 +115,9 @@ class Entity:
     def __hash__(self):
         return self._entity_id
 
+    def __str__(self):
+        return f"{self._name}, {self._entity_id}"
+
     @property
     def zlayer(self):
         return self._zlayer
@@ -130,4 +138,6 @@ class Entity:
             return
         self._alive = value
         if not value:
-            consts.CTX_SIGNAL_HANDLER.emit_signal("SORA_ENTITY_DEATH", self)
+            consts.CTX_SIGNAL_HANDLER.emit_signal(
+                f"SORA_ENTITY_DEATH-{self._zlayer}", self
+            )

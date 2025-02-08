@@ -85,3 +85,71 @@ class Cube:
     @classmethod
     def get_cube_tex(cls):
         return generate_vertex_data(cls.TEXCOORDS, cls.TEXCOORD_INDICES)
+
+
+class Plane:
+    VERTICES = [
+        # point 0
+        (1.0, 1.0, 0.0),
+        # point 1
+        (-1.0, 1.0, 0.0),
+        # point 2
+        (-1.0, -1.0, 0.0),
+        # point 3
+        (1.0, -1.0, 0.0),
+    ]
+
+    VERTEX_INDICES = [(0, 1, 2), (0, 2, 3)]
+
+    TEXCOORDS = [(0, 0), (1, 0), (1, 1), (0, 1)]
+
+    TEXCOORD_INDICES = [(2, 3, 0), (2, 0, 1)]
+
+    # ------------------------------------------------------------------------ #
+    # static methods
+    # ------------------------------------------------------------------------ #
+
+    @classmethod
+    def get_plane_vert(cls, width=1, height=1):
+        return generate_vertex_data(
+            [
+                (width, height, 0.0),
+                (-width, height, 0.0),
+                (-width, -height, 0.0),
+                (width, -height, 0.0),
+            ],
+            cls.VERTEX_INDICES,
+        )
+
+    @classmethod
+    def get_plane_tex(cls):
+        return generate_vertex_data(cls.TEXCOORDS, cls.TEXCOORD_INDICES)
+
+
+class Triangle:
+    VERTICES = [
+        # point 0
+        (0.0, 1.0, 0.0),
+        # point 1
+        (-1.0, -1.0, 0.0),
+        # point 2
+        (1.0, -1.0, 0.0),
+    ]
+
+    VERTEX_INDICES = [(0, 1, 2)]
+
+    TEXCOORDS = [(0, 0), (1, 0), (0.5, 1)]
+
+    TEXCOORD_INDICES = [(0, 1, 2)]
+
+    # ------------------------------------------------------------------------ #
+    # static methods
+    # ------------------------------------------------------------------------ #
+
+    @classmethod
+    def get_triangle_vert(cls):
+        return generate_vertex_data(cls.VERTICES, cls.VERTEX_INDICES)
+
+    @classmethod
+    def get_triangle_tex(cls):
+        return generate_vertex_data(cls.TEXCOORDS, cls.TEXCOORD_INDICES)

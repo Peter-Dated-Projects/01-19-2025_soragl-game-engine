@@ -102,19 +102,18 @@ class World2D(entity.Entity):
             )
 
             # check if entity moved chunks
-            if (
-                entity._chunk_pos != entity._prev_chunk_pos
-                or entity._zlayer != entity._prev_zlayer
-            ):
+            if entity._chunk_pos != entity._prev_chunk_pos:
                 # remove entity from old chunk
                 self.get_chunk(
                     entity._prev_chunk_pos, entity._prev_zlayer
-                ).remove_entity(entity)
+                ).remove_not_clean(entity)
                 # add entity to new chunk
                 self.get_chunk(entity._chunk_pos, entity._zlayer).add_entity(entity)
                 # update previous chunk position
                 entity._prev_chunk_pos = entity._chunk_pos
                 entity._prev_zlayer = entity._zlayer
+
+                print(f"{consts.RUN_TIME:.5f} | ENTITY MOVED CHUNKS", entity)
 
     # ------------------------------------------------------------------------ #
     # layer logic
@@ -123,9 +122,10 @@ class World2D(entity.Entity):
     def add_layer(self, layer: "Layer"):
         self._layers[layer._zlevel] = layer
         self._layers_order.append(layer._zlevel)
+        layer._world = self
+        layer.__post_init__()
         # sort layers
         self._layers_order.sort()
-        layer._world = self
 
     def remove_layer(self, zlevel: int):
         self._delta_layers.append(zlevel)
@@ -209,7 +209,10 @@ class Layer:
         self._world = None
 
     def __post_init__(self):
-        pass
+        # register the death signal for an entity
+        consts.CTX_SIGNAL_HANDLER.register_signal(
+            f"SORA_ENTITY_DEATH-{self._zlevel}", [entity.Entity]
+        )
 
     # ------------------------------------------------------------------------ #
     # logic
@@ -279,7 +282,7 @@ class Chunk:
     def __post_init__(self):
         # register the death signal for an entity
         self._death_signal = consts.CTX_SIGNAL_HANDLER.register_receiver(
-            "SORA_ENTITY_DEATH", self.remove_entity
+            f"SORA_ENTITY_DEATH-{self._layer._zlevel}", self._entity_death_logic
         )
 
     # ------------------------------------------------------------------------ #
@@ -299,11 +302,29 @@ class Chunk:
     # entity logic
     # ------------------------------------------------------------------------ #
 
+    def _entity_death_logic(self, entity: "Entity"):
+        print(
+            f"{consts.RUN_TIME:.5f} | ENTITY ZLAYER",
+            entity._zlayer,
+            self._layer._zlevel,
+        )
+        if (
+            entity._zlayer != self._layer._zlevel
+            or entity._zlayer != entity._prev_zlayer
+        ):
+            return
+        self.remove_entity(entity)
+
     def add_entity(self, entity: "Entity"):
+        print(
+            f"{consts.RUN_TIME:.5f} | ADDING", entity, entity._entity_id, entity._zlayer
+        )
         self._entities[entity._entity_id] = entity
 
     def remove_entity(self, entity: "Entity"):
-        # print(f"{consts.RUN_TIME:.5f} | REMOVING", entity._entity_id)
-        entity.clean()
+        print(f"{consts.RUN_TIME:.5f} | REMOVING", entity._entity_id)
         self._entities.pop(entity._entity_id)
-        entity._world.remove_entity(entity)
+        entity.clean()
+
+    def remove_not_clean(self, entity: "Entity"):
+        self._entities.pop(entity._entity_id)

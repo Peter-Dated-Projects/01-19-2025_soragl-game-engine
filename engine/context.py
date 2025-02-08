@@ -24,6 +24,7 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 
 import engine.constants as consts
+import engine.graphics.constants as gfx_consts
 
 
 # ======================================================================== #
@@ -79,10 +80,44 @@ def init():
     consts.CTX_ECS_HANDLER = consts.CTX_GAMESTATE_MANAGER.get_current_ecs()
 
     # ------------------------------------------------------------------------ #
-    # register signals
+    # post initialization script
     # ------------------------------------------------------------------------ #
 
     consts.CTX_SIGNAL_HANDLER.register_signal("SORA_ENTITY_DEATH", [entity.Entity])
+
+    consts.MGL_FRAMEBUFFER_VBO = buffer.GLBufferObject(
+        np.hstack(
+            [
+                gfx_consts.Plane.get_plane_vert(),
+                gfx_consts.Plane.get_plane_tex(),
+            ]
+        )
+    )
+    consts.MGL_FRAMEBUFFER_SHADER = shader.ShaderProgram(
+        vertex_shader=shader.Shader("assets/shaders/default-post-vertex.glsl"),
+        fragment_shader=shader.Shader("assets/shaders/default-post-fragment.glsl"),
+    )
+    consts.MGL_FRAMEBUFFER_VAO = buffer.VAOObject(
+        consts.MGL_FRAMEBUFFER_SHADER,
+        [(consts.MGL_FRAMEBUFFER_VBO(), "3f 2f", "in_position", "in_texcoords")],
+    )
+    consts.MGL_FRAMEBUFFER_RENDERING_MANIFOLD = buffer.RenderingManifold(
+        vao=consts.MGL_FRAMEBUFFER_VAO
+    )
+    consts.MGL_FRAMEBUFFER = buffer.FramebufferObject(
+        consts.FRAMEBUFFER_WIDTH,
+        consts.FRAMEBUFFER_HEIGHT,
+        color_attachments=[
+            buffer.FramebufferObject.create_texture_attachment(
+                consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT, 4
+            )
+        ],
+        depth_attachment=buffer.FramebufferObject.create_depth_attachment(
+            consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT
+        ),
+    )
+
+    # ------------------------------------------------------------------------ #
 
 
 def run():
@@ -102,13 +137,14 @@ def run():
     print("GLSL version:", glGetString(GL_SHADING_LANGUAGE_VERSION).decode())
 
     consts.MGL_CONTEXT.enable(flags=mgl.DEPTH_TEST)
-    glDepthFunc(GL_LESS)
+    glDepthFunc(GL_LEQUAL)
     # glEnable(GL_BLEND)
     # glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     # ------------------------------------------------------------------------ #
 
     while consts.RUNNING:
+        # stop()
         # ------------------------------------------------------------------------ #
         # time
         # ------------------------------------------------------------------------ #
@@ -142,23 +178,26 @@ def run():
         consts.W_FRAMEBUFFER.fill(consts.BACKGROUND_COLOR)
 
         # ------------------------------------------------------------------------ #
-        # updating
+        # updating + drawing
         # ------------------------------------------------------------------------ #
+
+        # consts.CTX_INPUT_HANDLER.update()
+        # consts.CTX_GAMESTATE_MANAGER.update()
+        # consts.CTX_SIGNAL_HANDLER.handle()
+
+        # stage 1: render pass #1
+        consts.MGL_FRAMEBUFFER.use_framebuffer()
+        consts.MGL_FRAMEBUFFER().clear(*consts.BACKGROUND_COLOR)
 
         # update game state
         consts.CTX_INPUT_HANDLER.update()
         consts.CTX_GAMESTATE_MANAGER.update()
-
-        # update aspects
         consts.CTX_SIGNAL_HANDLER.handle()
-        consts.W_SURFACE.blit(
-            pygame.transform.scale(consts.W_FRAMEBUFFER, consts.W_SURFACE.get_size()),
-            (0, 0),
-        )
 
-        # ------------------------------------------------------------------------ #
-        # drawing
-        # ------------------------------------------------------------------------ #
+        # stage 2: render pass #2
+        consts.MGL_CONTEXT.screen.use()
+        consts.MGL_FRAMEBUFFER.get_color_attachments()[0].use(location=1)
+        consts.MGL_FRAMEBUFFER_RENDERING_MANIFOLD.handle()
 
         # update window
         pygame.display.flip()
@@ -167,14 +206,21 @@ def run():
     # ------------------------------------------------------------------------ #
     # final cleaning
     # ------------------------------------------------------------------------ #
+    print(
+        f"{consts.RUN_TIME:.5f} | ===================== STOPPING GAME ================================"
+    )
 
     # clear up all game states
     consts.CTX_GAMESTATE_MANAGER.__on_clean__()
-    # clean up textures
+    # clean up textures + shaders + buffers + vaos
     texture.Texture.__on_clean__()
+    shader.ShaderProgram.__on_clean__()
+    buffer.GLBufferObject.__on_clean__()
+    buffer.VAOObject.__on_clean__()
 
     pygame.quit()
 
+    print("#" * 30)
     print("Game Stopped + Caches + Memory Cleaned")
 
 

@@ -1,8 +1,6 @@
-import math
 import pygame
 import random
 
-import engine.context as ctx
 import engine.constants as consts
 
 from engine.system import ecs

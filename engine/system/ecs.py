@@ -53,6 +53,15 @@ class ECSHandler:
             self._components[component.__class__] = {}
         self._components[component.__class__][component._uuid] = component
 
+        # sort entity components by priority
+        entity._components = dict(
+            sorted(
+                entity._components.items(),
+                key=lambda x: x[1]._priority,
+                reverse=True,
+            )
+        )
+
         return component
 
     def remove_component(self, component):
@@ -88,8 +97,9 @@ class ECSHandler:
 
 
 class Component:
-    def __init__(self):
+    def __init__(self, priority: int = 0):
         self.name = self.__class__.__name__
+        self._priority = priority
 
         self._uuid = 0
         self._ecs_handler = None
