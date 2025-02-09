@@ -24,3 +24,19 @@ pip install -r requirements.txt
 ## Development Log
 
 I should start a YouTube series for this if I want to get anywhere.
+
+## Images
+
+Hey. Here are some images of my work so far.
+
+![image6](docs/IMG_4031.JPG)
+
+![image5](docs/IMG_4030.JPG)
+
+![image4](docs/IMG_4029.JPG)
+
+![image3](docs/IMG_4028.JPG)
+
+![image2](docs/IMG_4027.JPG)
+
+![image1](docs/IMG_4026.JPG)
