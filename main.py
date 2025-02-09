@@ -1,6 +1,7 @@
 import os
 import sys
 import math
+import random
 import platform
 
 if not os.environ.get("PYTHONHASHSEED"):
@@ -17,8 +18,8 @@ if not os.environ.get("PYTHONHASHSEED"):
 
 import glm
 import pygame
+import pywavefront
 import numpy as np
-
 
 import engine.context as ctx
 import engine.constants as consts
@@ -322,13 +323,16 @@ def kill_static():
 t2 = e1.add_component(c_task.TaskComponent("kill_static", kill_static))
 
 # opengl testing
-_3dcam = camera.Camera3D(
-    5,
-    fov=45,
-    near=0.1,
-    far=1000,
-    position=glm.vec3(0, 3, -3),
-    forward=-glm.normalize(glm.vec3(0, 3, -3)),
+_campos = glm.vec3(0, 3, 0)
+_3dcam = consts.CTX_WORLD.add_entity(
+    camera.Camera3D(
+        5,
+        fov=45,
+        near=0.1,
+        far=1000,
+        position=_campos,
+        forward=camera.calculate_forward_from_target(_campos, glm.vec3(0, 0, 0)),
+    )
 )
 complete_vert_data = buffer.GLBufferObject(
     np.hstack(
@@ -366,6 +370,20 @@ shader_program = shader.ShaderProgram(
     fragment_shader=shader.Shader("assets/shaders/default-fragment.glsl"),
 )
 
+
+# create 100 random entities spinning and slightly moving up and down
+from engine.tests import e_cube
+
+for i in range(100):
+    consts.CTX_WORLD.add_entity(
+        e_cube.CubeEntity(
+            name=f"cube-{i}",
+            shader_program=shader_program,
+            complete_vert_data=complete_vert_data,
+        )
+    )
+
+
 render_entity = consts.CTX_WORLD.add_entity(entity.Entity(name="star!"))
 rman = render_entity.add_component(
     c_mesh.MeshComponent(
@@ -397,8 +415,9 @@ rman().write_uniform("m_view", _3dcam._view)
 
 def sub_task1():
     global m_model_rman, rman
-    result = glm.rotate(m_model_rman, consts.RUN_TIME, glm.vec3(0, 1, 0))
-    result = glm.scale(result, glm.vec3(0.2))
+    result = glm.scale(m_model_rman, glm.vec3(0.2))
+    result = glm.translate(result, glm.vec3(0, math.sin(consts.RUN_TIME) * 20, 0))
+    result = glm.rotate(result, consts.RUN_TIME, glm.vec3(0, 1, 0))
 
     rman().write_uniform("m_model", result)
     rman().set_texture(0, texture.Texture(raw_image=consts.W_FRAMEBUFFER))
@@ -513,8 +532,8 @@ rman3().set_texture(0, texture.Texture(raw_image=consts.W_FRAMEBUFFER))
 
 m_model_rman3 = glm.mat4()
 m_model_rman3 = glm.rotate(m_model_rman3, math.pi / 2, glm.vec3(1, 0, 0))
-m_model_rman3 = glm.translate(m_model_rman3, glm.vec3(0, -2, 0))
-m_model_rman3 = glm.scale(m_model_rman3, glm.vec3(1))
+m_model_rman3 = glm.translate(m_model_rman3, glm.vec3(0, 0, 20))
+m_model_rman3 = glm.scale(m_model_rman3, glm.vec3(10))
 
 rman3().write_uniform("m_model", m_model_rman3)
 # rman3().write_uniform("m_proj", ortho_cam._projection)
@@ -533,6 +552,72 @@ def sub_task3():
 render_entity3.add_component(c_task.TaskComponent("sub_task", sub_task3))
 
 
+# load the bugatti model and render it
+cat_shader = shader.ShaderProgram(
+    vertex_shader=shader.Shader("assets/shaders/model-vertex.glsl"),
+    fragment_shader=shader.Shader("assets/shaders/model-fragment.glsl"),
+)
+c_name, c_material = pywavefront.Wavefront(
+    "assets/models/cat/20430_Cat_v1_NEW.obj", parse=True
+).materials.popitem()
+c_vdata = buffer.GLBufferObject(np.array(c_material.vertices, dtype="float32"))
+c_tex = texture.Texture.get_texture(
+    "assets/models/cat/20430_cat_diff_v1.jpg", yflip=True
+)
+
+cat_entity = consts.CTX_WORLD.add_entity(entity.Entity(name="cat model"))
+
+cat_model_mesh = cat_entity.add_component(
+    c_mesh.MeshComponent(
+        buffer.RenderingManifold(
+            vao=buffer.VAOObject(
+                cat_shader,
+                [
+                    (
+                        c_vdata(),
+                        "2f 3f 3f",
+                        "in_texcoords",
+                        "in_normal",
+                        "in_position",
+                    )
+                ],
+            ),
+            tex_count=1,
+        )
+    )
+)
+
+model = glm.mat4()
+model = glm.rotate(model, math.pi / 2, glm.vec3(1, 0, 0))
+model = glm.rotate(model, math.pi / 2, glm.vec3(0, 0, 1))
+model = glm.scale(model, glm.vec3(0.3))
+
+cat_model_mesh().write_uniform("m_model", model)
+cat_model_mesh().write_uniform("m_proj", _3dcam._projection)
+cat_model_mesh().write_uniform("m_view", _3dcam._view)
+cat_model_mesh().set_texture(0, c_tex)
+
+
+# make camera rotate around entire world
+def camera_task():
+    global _3dcam, shader_program
+    _3dcam.position = glm.vec3(
+        10 * math.sin(consts.RUN_TIME),
+        3,
+        10 * math.cos(consts.RUN_TIME),
+    )
+    _3dcam.target = glm.vec3(0, 0, 0)
+
+    # update data in shader
+    shader_program["m_view"].write(_3dcam._view)
+    shader_program2["m_view"].write(_3dcam._view)
+    cat_model_mesh().write_uniform("m_view", _3dcam._view)
+
+    # print out fps
+    print(f"{consts.RUN_TIME:.5f} | FPS: {consts.W_CLOCK.get_fps()}")
+
+
+_3dcam.add_component(c_task.TaskComponent("camera_task", camera_task))
 # ======================================================================== #
 # run game
 # ======================================================================== #

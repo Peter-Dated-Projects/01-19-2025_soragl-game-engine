@@ -113,7 +113,7 @@ def init():
             )
         ],
         depth_attachment=buffer.FramebufferObject.create_depth_attachment(
-            consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT
+            consts.FRAMEBUFFER_WIDTH, consts.FRAMEBUFFER_HEIGHT, is_tex=True
         ),
     )
 
@@ -175,29 +175,35 @@ def run():
         # ------------------------------------------------------------------------ #
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        consts.MGL_FRAMEBUFFER().clear(*consts.BACKGROUND_COLOR, depth=1.0)
         consts.W_FRAMEBUFFER.fill(consts.BACKGROUND_COLOR)
 
         # ------------------------------------------------------------------------ #
         # updating + drawing
         # ------------------------------------------------------------------------ #
 
-        # consts.CTX_INPUT_HANDLER.update()
-        # consts.CTX_GAMESTATE_MANAGER.update()
-        # consts.CTX_SIGNAL_HANDLER.handle()
-
-        # stage 1: render pass #1
-        consts.MGL_FRAMEBUFFER.use_framebuffer()
-        consts.MGL_FRAMEBUFFER().clear(*consts.BACKGROUND_COLOR)
-
-        # update game state
         consts.CTX_INPUT_HANDLER.update()
-        consts.CTX_GAMESTATE_MANAGER.update()
-        consts.CTX_SIGNAL_HANDLER.handle()
 
-        # stage 2: render pass #2
-        consts.MGL_CONTEXT.screen.use()
-        consts.MGL_FRAMEBUFFER.get_color_attachments()[0].use(location=1)
-        consts.MGL_FRAMEBUFFER_RENDERING_MANIFOLD.handle()
+        if consts.CTX_INPUT_HANDLER.get_keyboard_pressed(pygame.K_SPACE):
+
+            # stage 1: render pass #1
+            consts.MGL_FRAMEBUFFER.use_framebuffer()
+
+            # update game state
+            consts.CTX_GAMESTATE_MANAGER.update()
+            consts.CTX_SIGNAL_HANDLER.handle()
+
+            # stage 2: render pass #2
+            consts.MGL_CONTEXT.screen.use()
+            consts.MGL_FRAMEBUFFER.get_color_attachments()[0].use(location=1)
+            consts.MGL_FRAMEBUFFER.get_depth_attachment().use(location=2)
+            consts.MGL_FRAMEBUFFER_RENDERING_MANIFOLD.handle()
+        else:
+            # render to screen directly
+            consts.MGL_CONTEXT.screen.use()
+
+            consts.CTX_GAMESTATE_MANAGER.update()
+            consts.CTX_SIGNAL_HANDLER.handle()
 
         # update window
         pygame.display.flip()

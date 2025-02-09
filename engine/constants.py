@@ -1,3 +1,4 @@
+import glm
 import pygame
 
 
@@ -77,3 +78,15 @@ class Constants:
     RIGHT = pygame.Vector2(1, 0)
 
     GRAVITY_VECTOR = DOWN * 9.8
+
+
+class GLM_Constants:
+
+    UP = glm.vec3(0, 1, 0)
+    DOWN = glm.vec3(0, -1, 0)
+    RIGHT = glm.vec3(1, 0, 0)
+    LEFT = glm.vec3(-1, 0, 0)
+    FORWARD = glm.vec3(0, 0, 1)
+    BACKWARD = glm.vec3(0, 0, -1)
+
+    ORIGIN = glm.vec3(0, 0, 0)

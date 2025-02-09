@@ -88,7 +88,7 @@ class Entity:
     # ------------------------------------------------------------------------ #
 
     def update(self):
-        print(f"{consts.RUN_TIME:.5f} | UPDATING ENTITY", self, self._zlayer)
+        # print(f"{consts.RUN_TIME:.5f} | UPDATING ENTITY", self, self._zlayer)
         pass
 
     def handle_components(self):

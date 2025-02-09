@@ -34,9 +34,9 @@ class FramebufferObject:
         )
 
     @classmethod
-    def create_depth_attachment(cls, width: int, height: int):
+    def create_depth_attachment(cls, width: int, height: int, is_tex: bool = False):
         return texture.Texture.create_non_file_texture(
-            width=width, height=height, channels=1, depth_buffer=True
+            width=width, height=height, channels=1, depth_buffer=True, is_tex=texture
         )
 
     @classmethod
@@ -91,6 +91,9 @@ class FramebufferObject:
     def get_depth_attachment(self):
         return self._depth_attachment
 
+    def get_stencil_attachment(self):
+        return self._stencil_attachment
+
     # ------------------------------------------------------------------------ #
     # special functions
     # ------------------------------------------------------------------------ #
@@ -120,10 +123,11 @@ class RenderingManifold:
         if not self._vao:
             return
         # set default variables into shader program
-        self.write_uniform(
-            self._tex_uniform_name,
-            np.array([i + 1 for i in range(tex_count)], dtype="int32"),
-        )
+        if tex_uniform_name:
+            self.write_uniform(
+                self._tex_uniform_name,
+                np.array([i + 1 for i in range(tex_count)], dtype="int32"),
+            )
 
     def __on_clean__(self):
         if not self._vao:

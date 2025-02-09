@@ -74,28 +74,84 @@ class Camera3D(BaseCamera):
 
         # view matrix
         self._view = glm.lookAt(
-            self._position, self._position + self._forward, self._up
+            self._position,
+            self._position + self._forward,
+            glm.cross(consts.GLM_Constants.RIGHT, self._forward),
         )
 
         # create projection -- default is perspective
-        if not self._orthogonal:
-            self._projection = glm.perspective(
-                glm.radians(fov),
-                consts.W_SURFACE.get_width() / consts.W_SURFACE.get_height(),
-                near,
-                far,
-            )
-        else:
+        self.calculate_projection()
+
+    # ------------------------------------------------------------------------ #
+    # logic
+    # ------------------------------------------------------------------------ #
+
+    def calculate_projection(self):
+        if self._orthogonal:
             self._projection = glm.ortho(
                 -consts.W_SURFACE.get_width() / 2,
                 consts.W_SURFACE.get_width() / 2,
                 -consts.W_SURFACE.get_height() / 2,
                 consts.W_SURFACE.get_height() / 2,
-                near,
-                far,
+                self._near,
+                self._far,
             )
+        else:
+            self._projection = glm.perspective(
+                glm.radians(self._fov),
+                consts.W_SURFACE.get_width() / consts.W_SURFACE.get_height(),
+                self._near,
+                self._far,
+            )
+
+    # ------------------------------------------------------------------------ #
+    # properties
+    # ------------------------------------------------------------------------ #
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        self._position = value
+        self._view = glm.lookAt(
+            self._position,
+            self._position + self._forward,
+            glm.cross(consts.GLM_Constants.RIGHT, self._forward),
+        )
+
+    @property
+    def target(self):
+        return self._position + self._forward
+
+    @target.setter
+    def target(self, value):
+        self._forward = value - self._position
+        self._view = glm.lookAt(
+            self._position,
+            self._position + self._forward,
+            glm.cross(consts.GLM_Constants.RIGHT, self._forward),
+        )
+
+    @property
+    def forward(self):
+        return self._forward
+
+    @forward.setter
+    def forward(self, value):
+        self._forward = value
+        self._view = glm.lookAt(
+            self._position,
+            self._position + self._forward,
+            glm.cross(consts.GLM_Constants.RIGHT, self._forward),
+        )
 
 
 # ======================================================================== #
 # Camera Utils
 # ======================================================================== #
+
+
+def calculate_forward_from_target(position: glm.vec3, target: glm.vec3):
+    return target - position

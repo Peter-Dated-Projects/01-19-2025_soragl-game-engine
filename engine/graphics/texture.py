@@ -1,4 +1,5 @@
 import pygame
+import moderngl as mgl
 
 import engine.context as ctx
 import engine.constants as consts
@@ -20,12 +21,12 @@ class Texture:
         return cls.TEXTURE_COUNT
 
     @classmethod
-    def get_texture(cls, path: str):
+    def get_texture(cls, path: str, xflip: bool = False, yflip: bool = False):
         if path in cls.CACHE:
             return cls.CACHE[path]
 
         # create texture
-        texture = cls(path=path)
+        texture = cls(path=path, xflip=xflip, yflip=yflip)
         cls.CACHE[path] = texture
 
         return texture
@@ -57,16 +58,55 @@ class Texture:
         channels: int = 4,
         color_buffer: bool = False,
         depth_buffer: bool = False,
+        stencil_buffer: bool = False,
+        is_tex: bool = False,
     ):
         if raw_image:
             texture = cls(raw_image=raw_image)
         elif color_buffer:
             texture = cls(
-                special_args={"width": width, "height": height, "channels": channels}
+                special_args={
+                    "width": width,
+                    "height": height,
+                    "channels": channels,
+                    "type": "color",
+                }
+            )
+        elif depth_buffer and stencil_buffer:
+            texture = cls(
+                special_args={
+                    "width": width,
+                    "height": height,
+                    "channels": 1,
+                    "type": "depth_stencil",
+                }
+            )
+        elif depth_buffer and is_tex:
+            texture = cls(
+                special_args={
+                    "width": width,
+                    "height": height,
+                    "channels": 1,
+                    "type": "depth_texture",
+                }
             )
         elif depth_buffer:
             texture = cls(
-                special_args={"width": width, "height": height, "channels": 1}
+                special_args={
+                    "width": width,
+                    "height": height,
+                    "channels": 1,
+                    "type": "depth",
+                }
+            )
+        elif stencil_buffer:
+            texture = cls(
+                special_args={
+                    "width": width,
+                    "height": height,
+                    "channels": 1,
+                    "type": "stencil",
+                }
             )
         else:
             texture = cls(raw_image=pygame.Surface((width, height)).convert_alpha())
@@ -86,13 +126,21 @@ class Texture:
         path: str = None,
         raw_image: pygame.Surface = None,
         special_args: dict = {},
+        mipmap: bool = True,
+        xflip: bool = False,
+        yflip: bool = False,
     ):
         self._uuid = self.generate_texture_uuid()
         self._path = path
         self._raw_image = raw_image
         self._texture = None
         self._special_args = special_args
+        self._has_mipmaps = mipmap
 
+        self._xflip = xflip
+        self._yflip = yflip
+
+        # properties
         self._width = 0
         self._height = 0
         self._components = 0
@@ -108,14 +156,21 @@ class Texture:
                 print(__file__, "Invalid channel count")
                 ctx.stop()
 
-            if self._components == 1:
+            if self._special_args["type"] == "depth":
                 self._texture = consts.MGL_CONTEXT.depth_texture(
                     size=(self._width, self._height)
                 )
-            else:
+            elif self._special_args["type"] == "depth_texture":
+                self._texture = consts.MGL_CONTEXT.depth_texture(
+                    size=(self._width, self._height)
+                )
+            elif self._special_args["type"] == "color":
                 self._texture = consts.MGL_CONTEXT.texture(
                     size=(self._width, self._height), components=self._components
                 )
+            else:
+                print(__file__, "Invalid special args: ", self._special_args)
+                ctx.stop()
 
             # add to non file cache
             self.cache_non_file(self)
@@ -143,11 +198,18 @@ class Texture:
             size=(self._width, self._height),
             components=self._components,
             data=pygame.image.tostring(
-                pygame.transform.flip(self._raw_image, flip_y=False, flip_x=True),
+                pygame.transform.flip(
+                    self._raw_image, flip_y=self._yflip, flip_x=self._xflip
+                ),
                 "RGBA",
                 False,
             ),
         )
+
+        # create mipmaps
+        if self._has_mipmaps:
+            self._texture.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
+            self._texture.build_mipmaps()
 
     # ------------------------------------------------------------------------ #
     # logic
