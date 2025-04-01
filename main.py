@@ -323,7 +323,7 @@ def kill_static():
 t2 = e1.add_component(c_task.TaskComponent("kill_static", kill_static))
 
 # opengl testing
-_campos = glm.vec3(0, 3, 0)
+_campos = glm.vec3(0, 8, 0)
 _3dcam = consts.CTX_WORLD.add_entity(
     camera.Camera3D(
         5,
@@ -332,6 +332,8 @@ _3dcam = consts.CTX_WORLD.add_entity(
         far=1000,
         position=_campos,
         forward=camera.calculate_forward_from_target(_campos, glm.vec3(0, 0, 0)),
+        orientation_lock=True,
+        orientation_lock_vec=glm.vec3(0, 1, 0),
     )
 )
 complete_vert_data = buffer.GLBufferObject(
@@ -588,8 +590,7 @@ cat_model_mesh = cat_entity.add_component(
 )
 
 model = glm.mat4()
-model = glm.rotate(model, math.pi / 2, glm.vec3(1, 0, 0))
-model = glm.rotate(model, math.pi / 2, glm.vec3(0, 0, 1))
+model = glm.rotate(model, -math.pi / 2, glm.vec3(1, 0, 0))
 model = glm.scale(model, glm.vec3(0.3))
 
 cat_model_mesh().write_uniform("m_model", model)
@@ -603,7 +604,7 @@ def camera_task():
     global _3dcam, shader_program
     _3dcam.position = glm.vec3(
         10 * math.sin(consts.RUN_TIME),
-        3,
+        _campos.y,
         10 * math.cos(consts.RUN_TIME),
     )
     _3dcam.target = glm.vec3(0, 0, 0)
@@ -615,6 +616,7 @@ def camera_task():
 
     # print out fps
     print(f"{consts.RUN_TIME:.5f} | FPS: {consts.W_CLOCK.get_fps()}")
+    print(f"{consts.RUN_TIME:.5f} | CAMERA UP: {_3dcam.up}")
 
 
 _3dcam.add_component(c_task.TaskComponent("camera_task", camera_task))
